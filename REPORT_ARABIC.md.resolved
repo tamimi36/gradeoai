@@ -1,0 +1,469 @@
+# تقرير نظام Gradeo API الشامل
+
+## ملخص تنفيذي
+
+نظام Gradeo هو واجهة برمجة تطبيقات جاهزة للإنتاج للتصحيح الآلي للامتحانات. يجمع بين:
+- **استخراج الأسئلة (OCR)** - يستخرج الأسئلة من الامتحانات الممسوحة باستخدام Gemini AI
+- **التصحيح** - يصحح 13 نوعًا مختلفًا من الأسئلة باستخدام الذكاء الاصطناعي والكود
+- **التعليقات التوضيحية** - يضع علامات تصحيح بأسلوب المعلم باستخدام OpenAI
+
+---
+
+## هيكل النظام
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         GRADEO API                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────┐    ┌─────────────────┐    ┌──────────────────┐    │
+│  │   OCR       │    │    التصحيح      │    │   التعليقات      │    │
+│  │             │    │                 │    │                  │    │
+│  │ • إنجليزي   │    │ • 13 نوع        │    │ • OpenAI DALL-E  │    │
+│  │ • عربي     │───▶│ • AI + كود      │───▶│ • أسلوب المعلم   │    │
+│  │ • فرنسي    │    │ • 3 مرات        │    │ • أخضر/أحمر      │    │
+│  │             │    │ • تغذية راجعة   │    │                  │    │
+│  └─────────────┘    └─────────────────┘    └──────────────────┘    │
+│                                                                     │
+│                    مدعوم بـ: Gemini 2.0 Flash                       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## الجزء الأول: نظام استخراج الأسئلة (OCR)
+
+### نظرة عامة
+يستخرج بيانات الأسئلة المنظمة من أوراق الامتحانات الممسوحة (PDF أو صور).
+
+### اللغات المدعومة
+- **الإنجليزية** - تعليمات مفصلة كاملة
+- **العربية** - تعليمات عربية أصلية
+- **الفرنسية** - دعم اللغة الفرنسية
+
+### 13 نوع من الأسئلة
+
+| # | النوع | الوصف | الحقول الرئيسية |
+|---|-------|-------|-----------------|
+| 1 | `multiple_choice` | اختيار من متعدد (أ، ب، ج، د) | `options`, `correct_answer` |
+| 2 | `true_false` | صواب وخطأ | `correct_answer` |
+| 3 | `matching` | المزاوجة / التوصيل | `left_column`, `right_column`, `correct_matches` |
+| 4 | `fill_in_blank` | ملء الفراغات | `blanks` |
+| 5 | `ordering` | إعادة الترتيب | `ordering_items`, `correct_order` |
+| 6 | **`short_answer`** | إجابات قصيرة (حقائق) | `expected_answer_count`, `acceptable_answers` |
+| 7 | `open_ended` | أسئلة مفتوحة تحليلية | `answer_length`, `expected_keywords`, `model_answer` |
+| 8 | `compare_contrast` | المقارنة والمقابلة | `compare_items`, `grading_table` |
+| 9 | `definition` | التعريفات | `term_to_define`, `model_answer` |
+| 10 | `labeling` | تحديد الأجزاء على الرسم/الشكل | `labeling_items`, `diagram_description` |
+| 11 | `labeling_image` | تحديد الأجزاء (كتابة يدوية) | `labeling_items`, `diagram_description` |
+| 12 | `math_equation` | معادلات رياضية (PEMDAS) | `math_content`, `correct_answer` |
+| 13 | `table` | جداول | `table_headers`, `grading_table` |
+
+> **جديد: short_answer** - للأسئلة الموجزة مثل "اذكر 4..."، "ما هو...؟"، "عدد..."
+> **محدّث: open_ended** - الآن للأسئلة التحليلية التي تتطلب شرحًا
+> **محدّث: labeling** - الآن لأسئلة تحديد الأجزاء على الرسومات
+
+### كيف يعمل OCR
+
+```python
+# 1. رفع ورقة الامتحان (PDF أو صورة)
+# 2. اختيار اللغة (english/arabic/french)
+# 3. يستخرج Gemini AI جميع الأسئلة بتنسيق منظم
+
+response = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents=[prompt, image],
+    config={
+        "response_mime_type": "application/json",
+        "response_schema": OCRResponse  # نموذج Pydantic
+    }
+)
+```
+
+### نقاط النهاية (API Endpoints)
+
+| النقطة | الطريقة | الوصف |
+|--------|---------|-------|
+| `/api/ocr/english` | POST | OCR بالإنجليزية |
+| `/api/ocr/arabic` | POST | OCR بالعربية |
+| `/api/ocr/french` | POST | OCR بالفرنسية |
+
+---
+
+## الجزء الثاني: نظام التصحيح
+
+### فئات التصحيح
+
+**الفئة أ: الإجابة المباشرة (بالكود)**
+- الاختيار من متعدد، صواب/خطأ، المزاوجة، ملء الفراغات، الترتيب، تحديد الأجزاء
+
+**الفئة ب: تصحيح بالذكاء الاصطناعي مع 3 مرات**
+- الأسئلة المفتوحة، المقارنة/المقابلة، التعريفات، الجداول، المعادلات الرياضية، تحديد الأجزاء من الصورة
+
+---
+
+### الفئة أ: التصحيح بالكود
+
+#### الاختيار من متعدد وصواب/خطأ
+```python
+def grade_multiple_choice(questions, student_answers, points):
+    for q in questions:
+        correct = q['correct_answer']
+        student = student_answers.get(q['question_number'])
+        is_correct = normalize(student) == normalize(correct)
+        # منح النقاط إذا كانت الإجابة صحيحة
+```
+
+#### المزاوجة
+```python
+def grade_matching(question, student_matches):
+    correct_matches = question['correct_matches']  # {"1": "a", "2": "b"}
+    for left_id, expected_right in correct_matches.items():
+        student_right = student_matches.get(left_id)
+        if normalize(student_right) == normalize(expected_right):
+            points_earned += points_per_pair
+```
+
+#### ملء الفراغات
+```python
+def grade_fill_blank(question, student_blanks):
+    correct_blanks = question['blanks']  # ["جواب1", "جواب2"]
+    for i, correct in enumerate(correct_blanks):
+        student = student_blanks[i] if i < len(student_blanks) else ""
+        if answers_match(student, correct):
+            points_earned += points_per_blank
+```
+
+---
+
+### الفئة ب: التصحيح بالذكاء الاصطناعي
+
+#### المنطق الأساسي: التصحيح 3 مرات
+
+جميع الأسئلة المصححة بالذكاء الاصطناعي تمر 3 مرات للاتساق:
+
+```python
+# تشغيل التصحيح 3 مرات
+pass_results = []
+for _ in range(3):
+    result = call_gemini(grading_prompt)
+    pass_results.append(result)
+
+# لكل معيار، نأخذ MODE (النتيجة الأكثر شيوعًا)
+for criterion in criteria:
+    statuses = [pass[criterion]['status'] for pass in pass_results]
+    final_status = get_mode(statuses)
+    
+    # إذا كانت 3 النتائج مختلفة → تحديد للمراجعة البشرية
+    if len(set(statuses)) == 3:
+        flag_for_review = True
+        final_status = get_median(statuses)
+```
+
+#### الأسئلة المفتوحة
+
+**المعايير الثابتة (5):**
+| المعيار | الوزن | الوصف |
+|---------|-------|-------|
+| `relevance` | 25% | يجيب على السؤال المطروح |
+| `completeness` | 25% | يغطي جميع النقاط المطلوبة |
+| `accuracy` | 20% | صحيح من الناحية الواقعية |
+| `key_terms` | 15% | يستخدم الكلمات المفتاحية المتوقعة |
+| `clarity` | 15% | منظم وواضح |
+
+**التقييم:**
+```
+لكل معيار:
+- "strong": مُظهر بالكامل (100%)
+- "adequate": مُظهر جزئيًا (60%)
+- "weak": مُظهر بشكل ضئيل (30%)
+- "missing": غير موجود (0%)
+```
+
+**حساب النقاط (بالكود):**
+```python
+STATUS_SCORES = {'strong': 1.0, 'adequate': 0.6, 'weak': 0.3, 'missing': 0.0}
+
+for criterion, weight in CRITERIA.items():
+    status = results[criterion]['status']
+    earned += weight * STATUS_SCORES[status] * max_points
+```
+
+---
+
+#### أسئلة المقارنة/المقابلة والجداول
+
+**التصحيح بالقائمة:**
+
+المعلم يوفر النقاط المتوقعة كجدول تصحيح:
+```python
+grading_table = [
+    {"item": "الانقسام المتساوي ينتج خليتين متطابقتين", "points": 2.5},
+    {"item": "الانقسام المنصف ينتج 4 خلايا مختلفة", "points": 2.5},
+    {"item": "الانقسام المتساوي للنمو", "points": 2.5}
+]
+```
+
+**تعليمات الذكاء الاصطناعي:**
+```
+لكل عنصر في القائمة:
+- "present": الطالب ذكر هذه النقطة بوضوح
+- "partial": مذكورة جزئيًا أو ضمنيًا
+- "absent": غير مذكورة
+```
+
+**حساب النقاط:**
+```python
+for item in grading_table:
+    if status == 'present':
+        earned += item['points']  # 100%
+    elif status == 'partial':
+        earned += item['points'] * 0.5  # 50%
+    # absent = 0%
+```
+
+---
+
+#### أسئلة التعريف
+
+**3 وحدات معنى:**
+| الوحدة | الوزن | الوصف |
+|--------|-------|-------|
+| `core_concept` | 50% | المعنى الرئيسي/الجوهري |
+| `required_properties` | 30% | الخصائص الأساسية |
+| `scope_context` | 20% | النطاق/السياق الصحيح |
+
+---
+
+#### المعادلات الرياضية (PEMDAS)
+
+**الخطوة 1: الذكاء الاصطناعي يولد خطوات PEMDAS**
+```python
+# ترتيب العمليات:
+# 1. الأقواس (Parentheses)
+# 2. الأسس (Exponents)
+# 3. الضرب والقسمة (من اليسار لليمين)
+# 4. الجمع والطرح (من اليسار لليمين)
+```
+
+**الخطوة 2: الذكاء الاصطناعي يقيم عمل الطالب (3 مرات)**
+```python
+# لكل خطوة متوقعة:
+# - "present": الطالب أظهر هذا بشكل صحيح
+# - "partial": حاول مع خطأ
+# - "absent": لم يُظهر
+
+# الذكاء الاصطناعي يتعرف على الطرق المكافئة:
+# "6 × 4 = 24" تساوي "4 × 6 = 24"
+```
+
+**الخطوة 3: الكود يحسب النتيجة النهائية**
+```python
+points_per_step = total_points / num_steps
+for step in steps:
+    if status == 'present': earned += points_per_step
+    elif status == 'partial': earned += points_per_step * 0.5
+```
+
+**المخرجات تشمل:**
+```json
+{
+  "expected": "2 + 3 = 5",
+  "expected_latex": "$2 + 3 = 5$",
+  "status": "present",
+  "reason": "الطالب حسب 2+3=5 بشكل صحيح"
+}
+```
+
+---
+
+### جميع نقاط نهاية التصحيح
+
+| النقطة | نوع السؤال | الطريقة |
+|--------|-----------|---------|
+| `/api/grading/mcq` | اختيار من متعدد | كود |
+| `/api/grading/true-false` | صواب/خطأ | كود |
+| `/api/grading/matching` | مزاوجة | كود |
+| `/api/grading/fill-in-blank` | ملء الفراغات | كود |
+| `/api/grading/ordering` | ترتيب | كود |
+| `/api/grading/labeling` | تحديد الأجزاء (رسم) | AI 3 مرات |
+| `/api/grading/short-answer` | **إجابات قصيرة (جديد)** | AI 3 مرات |
+| `/api/grading/labeling-image` | تحديد الأجزاء (صورة) | AI + كود |
+| `/api/grading/open-ended` | مفتوحة (تحليلية) | AI 3 مرات |
+| `/api/grading/compare-contrast` | مقارنة/مقابلة | AI 3 مرات |
+| `/api/grading/definition` | تعريف | AI 3 مرات |
+| `/api/grading/table` | جدول | AI 3 مرات |
+| `/api/grading/math-equations` | رياضيات | AI 3 مرات |
+
+---
+
+### تصحيح الإجابات القصيرة (جديد)
+
+**الغرض:** تصحيح الإجابات الموجزة (ليست تحليلية)
+
+**أمثلة:** "اذكر 4 خصائص..."، "ما هي عاصمة...؟"، "عدد 3 ألوان أساسية"
+
+**المعايير (3):**
+| المعيار | الوزن | الوصف |
+|---------|-------|-------|
+| `factual_accuracy` | 60% | هل الإجابة صحيحة من الناحية الواقعية؟ |
+| `completeness` | 30% | هل جميع العناصر المطلوبة موجودة؟ |
+| `terminology` | 10% | هل يستخدم المصطلحات الصحيحة؟ |
+
+**درجات الحالة:**
+- `present` = 100%
+- `partial` = 50%
+- `absent` = 0%
+
+**يستخدم التصحيح 3 مرات مع mode/median للاتساق.**
+
+---
+
+### تصحيح تحديد الأجزاء (محدّث)
+
+**الغرض:** تصحيح أسئلة تحديد الأجزاء على الرسومات باستخدام LLM
+
+**كيف يعمل:**
+1. إرسال أزواج التسميات إلى Gemini AI (الصحيحة مقابل إجابة الطالب)
+2. الذكاء الاصطناعي يُرجع `present/partial/absent` لكل تسمية
+3. التشغيل 3 مرات للاتساق
+4. استخدام mode/median للحالة النهائية
+
+**المميزات:**
+- يقبل المرادفات ("LA" = "Left Atrium")
+- يتعامل مع الأخطاء الإملائية البسيطة
+- فهم دلالي (ليس مطابقة نصية دقيقة)
+
+---
+
+## الجزء الثالث: نظام التعليقات التوضيحية
+
+### نظرة عامة
+يأخذ الامتحانات المصححة ويضع علامات تصحيح بأسلوب المعلم باستخدام OpenAI DALL-E.
+
+### كيف يعمل (محدّث)
+
+```
+1. المدخلات: امتحان ممسوح (صورة) + نتائج التصحيح
+
+2. توليد الصورة بالذكاء الاصطناعي (OpenAI DALL-E):
+   - تعليمات بسيطة بأسلوب المعلم
+   - ✓ أخضر للإجابات الصحيحة
+   - ✗ أحمر للإجابات الخاطئة
+   - كتابة الدرجة في مربع النتيجة
+   - أسلوب خط اليد الطبيعي للمعلم
+
+3. الاحتياطي (PIL):
+   - إذا فشل OpenAI، يستخدم الرسم المحلي بـ PIL
+   - علامات بأسلوب خط اليد مع إزاحات عشوائية
+
+4. المخرجات: صورة معلّمة بتصحيحات المعلم
+```
+
+### التعليمات البسيطة للذكاء الاصطناعي
+
+```python
+prompt = f"""أنت معلم تصحح هذا الامتحان بقلم أحمر وأخضر.
+
+س1: صحيح (1/1)
+س2: خطأ (0/1)
+...
+المجموع: 2/3
+
+صححه كما يفعل المعلم الحقيقي:
+- ✓ أخضر للإجابات الصحيحة
+- ✗ أحمر للإجابات الخاطئة
+- اكتب الدرجة في مربع النتيجة
+
+استخدم أسلوب خط يد المعلم الطبيعي."""
+```
+
+### تكامل OpenAI
+
+```python
+import openai
+
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+response = client.images.edit(
+    model="dall-e-2",
+    image=exam_image_bytes,
+    mask=mask_bytes,
+    prompt=prompt,
+    n=1,
+    size="1024x1024"
+)
+
+annotated_url = response.data[0].url
+```
+
+### نقطة نهاية التعليقات
+
+| النقطة | الطريقة | الوصف |
+|--------|---------|-------|
+| `/api/annotation/generate` | POST | إنشاء صورة معلّمة بأسلوب المعلم |
+
+---
+
+## التقنيات المستخدمة
+
+| المكون | التقنية |
+|--------|---------|
+| الإطار | Flask + Flask-RESTx |
+| الذكاء الاصطناعي للـ OCR والتصحيح | Google Gemini 2.0 Flash |
+| الذكاء الاصطناعي للتعليقات | OpenAI DALL-E 2 |
+| معالجة PDF | PyMuPDF (fitz) |
+| معالجة الصور | Pillow |
+| التحقق | Pydantic |
+| التوثيق | Swagger/OpenAPI |
+
+---
+
+## قرارات التصميم الرئيسية
+
+1. **التصحيح 3 مرات**: 3 مرات مع mode/median للاتساق
+2. **حساب النقاط بالكود**: الذكاء الاصطناعي يقيم الجودة، الكود يحسب النقاط
+3. **تغذية راجعة لكل عنصر**: كل معيار/خطوة تتضمن تفسير الذكاء الاصطناعي
+4. **تحديد التباين العالي**: يُحدد الدرجات غير المتسقة للمراجعة البشرية
+5. **التعليقات بدون قوالب**: الذكاء الاصطناعي يكتشف المواقع ديناميكيًا
+6. **إخراج بتنسيقين**: نص عادي + LaTeX للتعبيرات الرياضية
+
+---
+
+## هيكل الملفات
+
+```
+app/
+├── __init__.py              # مصنع تطبيق Flask
+├── config.py                # الإعدادات
+├── models/
+│   └── schemas.py           # نماذج Pydantic (12 نوع)
+├── routes/
+│   ├── ocr.py               # نقاط /api/ocr
+│   ├── grading.py           # نقاط /api/grading (12)
+│   └── annotation.py        # نقطة /api/annotation
+└── services/
+    ├── gemini_ocr.py        # OCR مع 3 تعليمات لغوية
+    ├── grading.py           # تصحيح بالكود
+    ├── short_answer_grading.py  # جديد: تصحيح الإجابات القصيرة
+    ├── labeling_grading.py  # تحديد الأجزاء مع LLM
+    ├── open_ended_grading.py
+    ├── compare_contrast_grading.py
+    ├── definition_grading.py
+    ├── math_grading.py
+    ├── table_grading.py
+    ├── labeling_image_grading.py
+    └── annotation_service.py
+```
+
+---
+
+## الملخص
+
+يوفر Gradeo API معالجة امتحانات آلية شاملة:
+
+1. **OCR**: استخراج الأسئلة من أي تنسيق امتحان (3 لغات، 13 نوع)
+2. **التصحيح**: تصحيح هجين AI + كود مع التصحيح 3 مرات والتغذية الراجعة
+3. **التعليقات**: علامات تصحيح بأسلوب المعلم باستخدام OpenAI
+
+جميع المكونات جاهزة للإنتاج مع توثيق Swagger.

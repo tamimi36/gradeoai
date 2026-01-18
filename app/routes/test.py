@@ -80,6 +80,22 @@ SAMPLE_DATA = {
         'student_answers': {'1': {'1': 'Left Atrium', '2': 'Left Ventricle', '3': 'Aorta'}},
         'points_per_label': 1.0
     },
+    'labeling_image': {
+        'description': 'Upload a diagram image with handwritten student labels. Uses AI Vision to OCR and grade.',
+        'questions': [
+            {
+                'question_number': '1',
+                'diagram_description': 'Human heart diagram with student handwritten labels',
+                'labeling_items': [
+                    {'label_id': '1', 'pointer_description': 'Upper left chamber', 'correct_label': 'Left Atrium'},
+                    {'label_id': '2', 'pointer_description': 'Lower left chamber', 'correct_label': 'Left Ventricle'},
+                    {'label_id': '3', 'pointer_description': 'Main artery from heart', 'correct_label': 'Aorta'}
+                ],
+                'points': 3.0
+            }
+        ],
+        'student_images': {'1': 'UPLOAD_IMAGE_BASE64_HERE'}
+    },
     'short_answer': {
         'questions': [
             {
@@ -180,14 +196,46 @@ SAMPLE_DATA = {
         'questions': [
             {
                 'question_number': '1',
-                'question_text': 'Solve: (2 + 3) × 4 - 6 ÷ 2',
+                'question_text': 'Simple PEMDAS: (2 + 3) × 4 - 6 ÷ 2',
                 'math_content': '(2 + 3) × 4 - 6 ÷ 2',
                 'correct_answer': '17',
+                'points': 10.0
+            },
+            {
+                'question_number': '2',
+                'question_text': 'Nested Parentheses: ((4 + 2) × 3) - (10 ÷ 2)',
+                'math_content': '((4 + 2) × 3) - (10 ÷ 2)',
+                'correct_answer': '13',
+                'points': 10.0
+            },
+            {
+                'question_number': '3',
+                'question_text': 'With Exponent: 2³ + 4 × 5 - 10',
+                'math_content': '2³ + 4 × 5 - 10',
+                'correct_answer': '18',
+                'points': 10.0
+            },
+            {
+                'question_number': '4',
+                'question_text': 'Complex: 100 ÷ (5 × 2) + 3² - 1',
+                'math_content': '100 ÷ (5 × 2) + 3² - 1',
+                'correct_answer': '18',
+                'points': 10.0
+            },
+            {
+                'question_number': '5',
+                'question_text': 'Multi-step: 8 + 2 × (9 - 4) ÷ 5 - 1',
+                'math_content': '8 + 2 × (9 - 4) ÷ 5 - 1',
+                'correct_answer': '9',
                 'points': 10.0
             }
         ],
         'student_answers': {
-            '1': '2+3=5\n5×4=20\n6÷2=3\n20-3=17'
+            '1': '2+3=5\\n5×4=20\\n6÷2=3\\n20-3=17',
+            '2': '4+2=6\\n6×3=18\\n10÷2=5\\n18-5=13',
+            '3': '2³=8\\n4×5=20\\n8+20=28\\n28-10=18',
+            '4': '5×2=10\\n100÷10=10\\n3²=9\\n10+9=19\\n19-1=18',
+            '5': '9-4=5\\n2×5=10\\n10÷5=2\\n8+2=10\\n10-1=9'
         }
     },
     'ocr_english': {
@@ -203,16 +251,219 @@ SAMPLE_DATA = {
         'description': "Télécharger une image d'examen pour extraire les questions"
     },
     'annotation': {
-        'description': 'Upload graded exam to add correction marks',
+        'description': 'Upload graded exam to add correction marks. Now shows correct answers for wrong MCQ/T/F and feedback for AI-graded questions.',
         'grading_results': {
             'questions': [
-                {'question_number': '1', 'points_earned': 2, 'points_possible': 2},
-                {'question_number': '2', 'points_earned': 2, 'points_possible': 2},
-                {'question_number': '3', 'points_earned': 0, 'points_possible': 2}
+                {
+                    'question_number': '1', 
+                    'question_type': 'multiple_choice',
+                    'points_earned': 2, 
+                    'points_possible': 2,
+                    'correct_answer': 'B'
+                },
+                {
+                    'question_number': '2', 
+                    'question_type': 'multiple_choice',
+                    'points_earned': 2, 
+                    'points_possible': 2,
+                    'correct_answer': 'B'
+                },
+                {
+                    'question_number': '3', 
+                    'question_type': 'multiple_choice',
+                    'points_earned': 0, 
+                    'points_possible': 2,
+                    'correct_answer': 'C',
+                    'feedback': 'Jupiter is the largest planet in our solar system'
+                }
             ],
             'total_earned': 4,
             'total_possible': 6
         }
+    },
+    'annotation_arabic': {
+        'description': 'مقال الحرب العالمية الأولى - اختبار التصحيح مع الملاحظات بالعربية',
+        'grading_results': {
+            'questions': [
+                {
+                    'question_number': '1', 
+                    'question_type': 'open_ended',
+                    'points_earned': 7, 
+                    'points_possible': 10,
+                    'correct_answer': '',
+                    'feedback': 'تحليل جيد لأسباب الحرب العالمية الأولى. ذكرت اغتيال الأرشيدوق فرانز فرديناند والتحالفات العسكرية. ينقصك ذكر السباق على التسلح والتنافس الاستعماري. حاول ربط الأسباب ببعضها البعض.'
+                }
+            ],
+            'total_earned': 7,
+            'total_possible': 10
+        }
+    },
+    'annotation_french': {
+        'description': 'Dissertation sur la Première Guerre mondiale - Test avec commentaires en français',
+        'grading_results': {
+            'questions': [
+                {
+                    'question_number': '1', 
+                    'question_type': 'open_ended',
+                    'points_earned': 8, 
+                    'points_possible': 10,
+                    'correct_answer': '',
+                    'feedback': 'Excellente analyse des conséquences de la Première Guerre mondiale. Vous avez bien mentionné le Traité de Versailles et la création de la Société des Nations. Il manque une discussion sur les changements territoriaux en Europe de l\'Est.'
+                }
+            ],
+            'total_earned': 8,
+            'total_possible': 10
+        }
+    },
+    'exam_report': {
+        'description': 'Generate professional exam report. Supports English, Arabic (RTL), French. Includes sub-questions.',
+        'student_info': {
+            'name': 'Ahmed Hassan / أحمد حسن',
+            'section': 'Grade 10-A',
+            'date': '2026-01-17',
+            'subject': 'Multilingual Science Test'
+        },
+        'grading_results': {
+            'grading': [
+                {
+                    'question_number': '1',
+                    'student_answer': 'B',
+                    'correct_answer': 'B',
+                    'earned_points': 2,
+                    'possible_points': 2,
+                    'feedback': ''
+                },
+                {
+                    'question_number': '2',
+                    'student_answer': 'A',
+                    'correct_answer': 'C',
+                    'earned_points': 0,
+                    'possible_points': 2,
+                    'feedback': 'Carbon is element #6'
+                },
+                {
+                    'question_number': '3',
+                    'student_answer': 'القاهرة',
+                    'correct_answer': 'القاهرة',
+                    'earned_points': 2,
+                    'possible_points': 2,
+                    'feedback': ''
+                },
+                {
+                    'question_number': '4',
+                    'student_answer': 'صح',
+                    'correct_answer': 'خطأ',
+                    'earned_points': 0,
+                    'possible_points': 2,
+                    'feedback': 'القمر يدور حول الأرض وليس العكس'
+                },
+                {
+                    'question_number': '5',
+                    'student_answer': 'Paris',
+                    'correct_answer': 'Paris',
+                    'earned_points': 2,
+                    'possible_points': 2,
+                    'feedback': ''
+                },
+                {
+                    'question_number': '6',
+                    'sub_questions': [
+                        {
+                            'sub_number': 'a',
+                            'student_answer': 'H2O',
+                            'correct_answer': 'H2O',
+                            'earned_points': 1,
+                            'possible_points': 1,
+                            'feedback': ''
+                        },
+                        {
+                            'sub_number': 'b',
+                            'student_answer': 'NaCl',
+                            'correct_answer': 'NaCl',
+                            'earned_points': 1,
+                            'possible_points': 1,
+                            'feedback': ''
+                        },
+                        {
+                            'sub_number': 'c',
+                            'student_answer': 'CO2',
+                            'correct_answer': 'CO3',
+                            'earned_points': 0,
+                            'possible_points': 1,
+                            'feedback': 'Carbonate is CO3, not CO2'
+                        }
+                    ]
+                },
+                {
+                    'question_number': '7',
+                    'student_answer': 'La Révolution a changé la société',
+                    'correct_answer': '',
+                    'earned_points': 3,
+                    'possible_points': 5,
+                    'feedback': 'Bonne analyse mais il manque des détails sur les conséquences économiques'
+                }
+            ],
+            'total_earned': 11,
+            'total_possible': 18
+        },
+        'questions': [
+            {'question_number': '1', 'question_text': 'What is the chemical symbol for water?'},
+            {'question_number': '2', 'question_text': 'Which element has atomic number 6?'},
+            {'question_number': '3', 'question_text': 'ما هي عاصمة مصر؟'},
+            {'question_number': '4', 'question_text': 'الشمس تدور حول الأرض. (صح / خطأ)'},
+            {'question_number': '5', 'question_text': 'Quelle est la capitale de la France?'},
+            {'question_number': '6', 'question_text': 'Write the chemical formulas for: (a) Water (b) Salt (c) Carbonate'},
+            {'question_number': '7', 'question_text': 'Expliquez le rôle de la Révolution française'}
+        ],
+        'format': 'docx',
+        'language': 'en'
+    },
+    'exam_report_arabic': {
+        'description': 'إنشاء تقرير امتحان احترافي بصيغة DOCX أو PDF',
+        'student_info': {
+            'name': 'محمد علي',
+            'section': 'الصف العاشر - أ',
+            'date': '2026-01-17',
+            'subject': 'العلوم'
+        },
+        'grading_results': {
+            'grading': [
+                {'question_number': '1', 'student_answer': 'ب', 'correct_answer': 'ب', 'status': 'Correct', 'earned_points': 2, 'possible_points': 2},
+                {'question_number': '2', 'student_answer': 'أ', 'correct_answer': 'ج', 'status': 'Incorrect', 'earned_points': 0, 'possible_points': 2, 'feedback': 'الجواب الصحيح هو الكربون'}
+            ],
+            'total_earned': 2,
+            'total_possible': 4
+        },
+        'questions': [
+            {'question_number': '1', 'question_text': 'ما هو الرمز الكيميائي للماء؟'},
+            {'question_number': '2', 'question_text': 'أي عنصر له العدد الذري 6؟'}
+        ],
+        'language': 'ar'
+    },
+    'annotation_customize': {
+        'description': 'Customize annotation positions, colors, fonts, and labels manually.',
+        'settings': {
+            'checkColor': '#19aa19',
+            'xColor': '#be1e1e',
+            'partialColor': '#c89600',
+            'fontFamily': 'Segoe Script',
+            'markSize': 32,
+            'fontSize': 24,
+            'bgOpacity': 160
+        },
+        'sample_annotations': [
+            {'id': 'q1', 'type': 'check', 'text': '✓ 2/2', 'x': 50, 'y': 150, 'color': '#19aa19', 'width': 100, 'height': 40, 'status': 'approved'},
+            {'id': 'q2', 'type': 'x', 'text': '✗ 0/2', 'x': 50, 'y': 250, 'color': '#be1e1e', 'width': 100, 'height': 40, 'status': 'pending'},
+            {'id': 'q2_correct', 'type': 'correct_answer', 'text': 'Correct: Photosynthesis', 'x': 70, 'y': 300, 'width': 250, 'height': 30, 'status': 'pending'},
+            {'id': 'q3', 'type': 'partial', 'text': '— 1/2', 'x': 50, 'y': 400, 'color': '#c89600', 'width': 100, 'height': 40, 'status': 'pending'},
+            {'id': 'q3_fb', 'type': 'feedback', 'text': 'Mention the role of CO2 and water', 'x': 70, 'y': 450, 'width': 300, 'height': 60, 'status': 'pending'}
+        ],
+        'scenarios': [
+            'Simple MCQ Correction',
+            'High-Density Review',
+            'Diagram Labeling Adjustments'
+        ],
+        'presets': ['Classic Teacher', 'Modern Minimal', 'Professional']
     }
 }
 
@@ -638,20 +889,20 @@ TEST_HTML = '''
                         <span>/ocr/arabic</span>
                     </li>
                 </ul>
-
-                <h3>⚡ Orchestration</h3>
-                <ul class="endpoint-list">
-                    <li data-endpoint="workflow">
-                        <span class="method annotate">POST</span>
-                        <span>/workflow/full</span>
-                    </li>
-                </ul>
                 
                 <h3>✏️ Annotation</h3>
                 <ul class="endpoint-list">
                     <li data-endpoint="annotation">
                         <span class="method annotate">POST</span>
                         <span>/annotation/generate</span>
+                    </li>
+                </ul>
+                
+                <h3>📄 Reports</h3>
+                <ul class="endpoint-list">
+                    <li data-endpoint="exam_report">
+                        <span class="method" style="background: #ec4899;">POST</span>
+                        <span>/exam/report</span>
                     </li>
                 </ul>
             </aside>
@@ -672,7 +923,7 @@ TEST_HTML = '''
                             <input type="file" id="file-input" accept="image/*,.pdf" onchange="handleFileUpload(event)">
                         </div>
                         <img id="preview-image" class="preview-image" style="display: none;">
-                        
+               g         
                         <h4 style="margin: 20px 0 10px; color: #888;">Or use sample images:</h4>
                         <div class="sample-images" id="sample-images"></div>
                     </div>
@@ -733,7 +984,10 @@ TEST_HTML = '''
             ocr_arabic: { path: '/api/ocr/arabic', title: 'OCR - العربية', desc: 'استخراج الأسئلة من صورة ورقة امتحان.', type: 'ocr' },
             ocr_french: { path: '/api/ocr/french', title: 'OCR - Français', desc: "Extraire les questions d'une image d'examen.", type: 'ocr' },
             workflow: { path: '/api/workflow/full', title: 'Full Workflow (OCR + Grade + Annotate)', desc: 'Run complete extraction, grading, and annotation in one call.', type: 'ocr' },
-            annotation: { path: '/api/annotation/generate', title: 'Generate Corrected Paper', desc: 'Overlay correction marks on exam paper.', type: 'annotation' }
+            annotation: { path: '/api/annotation/generate', title: 'Generate Corrected Paper', desc: 'Overlay correction marks on exam paper.', type: 'annotation' },
+            annotation_arabic_sample: { path: '/api/annotation/generate', title: '🇸🇦 Arabic Open Question Sample', desc: 'Test Arabic feedback with open-ended question annotation.', type: 'annotation', sampleKey: 'annotation_arabic' },
+            annotation_french_sample: { path: '/api/annotation/generate', title: '🇫🇷 French Open Question Sample', desc: 'Test French feedback with open-ended question annotation.', type: 'annotation', sampleKey: 'annotation_french' },
+            exam_report: { path: '/api/exam/report', title: '📄 Generate Exam Report (DOCX/PDF)', desc: 'Generate professional report with student info, questions, answers, corrections.', type: 'exam_report' }
         };
         
         // ============ COMPREHENSIVE ENDPOINT DOCUMENTATION ============
@@ -1400,55 +1654,39 @@ language: "english" | "arabic" | "french"`,
             },
             
             annotation: {
-                title: '✏️ Generate Corrected Paper',
-                method: 'AI VISION + PDF Generation',
+                title: '✍️ Annotation Generation',
+                method: '⭐ AI VISION + GRID',
                 logic: `<h4>🔧 How It Works</h4>
 <ol>
-<li><strong>Position Detection:</strong> AI Vision finds:
-    <ul>
-        <li>Question answer positions on page</li>
-        <li>Existing score box in header (if any)</li>
-    </ul>
-</li>
-<li><strong>Mark Overlay:</strong> Using PyMuPDF (fitz):
-    <ul>
-        <li>✓ Checkmark for correct answers (green)</li>
-        <li>✗ X-mark for wrong answers (red)</li>
-        <li>Point scores next to each question</li>
-    </ul>
-</li>
-<li><strong>Final Score:</strong> Written in detected score box or top-right</li>
-<li><strong>PDF Generation:</strong> Returns base64-encoded corrected PDF</li>
+<li><strong>Grid Overlay:</strong> Service draws a 20x20 grid on image for accuracy</li>
+<li><strong>AI Detection:</strong> Gemini identifies answer positions in grid coordinates</li>
+<li><strong>Non-Destructive:</strong> System returns original image + metadata (Editable)</li>
+<li><strong>Unified Logic:</strong> Connects mark + score as a single draggable unit</li>
 </ol>
 
-<h4>📋 grading_results Structure</h4>
+<h4>📝 Metadata Structure</h4>
 <pre>{
-  "questions": [
-    {"question_number": "1", "points_earned": 2, "points_possible": 2}
-  ],
-  "total_earned": 2,
-  "total_possible": 4
-}</pre>
-
-<h4>🎨 Appearance</h4>
-<p>Professional teacher-style marks with handwriting font and red ink.</p>`,
+  "id": "q1_mark",
+  "type": "check",
+  "text": "✓ 2/2",
+  "x": 450, "y": 120,
+  "width": 100, "height": 40,
+  "status": "pending"
+}</pre>`,
                 request: `{
-  "exam_file": "base64_encoded_image_or_pdf...",
-  "file_type": "pdf",  // or "png", "jpg"
+  "exam_file": "base64_data...",
+  "file_type": "png",
   "grading_results": {
-    "questions": [
-      {"question_number": "1", "points_earned": 2, "points_possible": 2}
-    ],
-    "total_earned": 2,
-    "total_possible": 2
+    "questions": [{"question_number": "1", "points_earned": 2, "points_possible": 2}]
   }
 }`,
                 response: `{
-  "corrected_pdf": "base64_encoded_pdf...",
-  "filename": "corrected_exam.pdf",
-  "pages_processed": 1,
-  "annotations_added": 3,
-  "score_box_detected": true
+  "success": true,
+  "data": {
+    "original_image": "base64...",
+    "annotation_metadata": [...],
+    "is_draft": true
+  }
 }`
             }
         };
@@ -1528,6 +1766,15 @@ language: "english" | "arabic" | "french"`,
                 ]
             },
             annotation: {
+                'Question Types': [
+                    { name: 'True/False', file: 'sample_true_false_1768604780787.png', desc: '4 T/F questions, Q2 wrong' },
+                    { name: 'Matching', file: 'sample_matching_1768604794476.png', desc: '4 matches, Q3 wrong' },
+                    { name: 'Fill-in-Blank', file: 'sample_fill_blank_1768604807738.png', desc: '3 blanks, Q2 wrong' },
+                    { name: 'Ordering', file: 'sample_ordering_1768604821872.png', desc: 'Water cycle order, 2 wrong' },
+                    { name: 'Short Answer', file: 'sample_short_answer_1768604836287.png', desc: '2 short answers' },
+                    { name: 'Math Equations', file: 'sample_math_equations_1768604851308.png', desc: '2 PEMDAS problems, Q2 error' },
+                    { name: 'Open-Ended', file: 'sample_open_ended_1768604864960.png', desc: 'WWI essay question' }
+                ],
                 'Full Exam Samples': [
                     { name: 'Mixed Exam', file: 'sample_exam_mixed.png', desc: 'Full exam (MCQ, Fill, Open)' },
                     { name: 'Standard Layout', file: 'sample_mixed.png', desc: 'Clean layout' },
@@ -1538,48 +1785,102 @@ language: "english" | "arabic" | "french"`,
                     { name: 'Math Algebra', file: 'gen_math_1.png', desc: 'Algebra annotations' },
                     { name: 'Bio Labeling', file: 'gen_label_1.png', desc: 'Diagram labeling marks' },
                     { name: 'History Open', file: 'gen_open_1.png', desc: 'Essay annotations' }
-                ],
-                'Staging/Old': [
-                    { name: 'English MCQ', file: 'exam_annotate_answered1.png', desc: 'Legacy MCQ' },
-                    { name: 'English T/F', file: 'exam_annotate_answered2.png', desc: 'Legacy T/F' }
                 ]
             }
         };
 
         // Helper to get sample JSON for annotation based on image type
         function getAnnotationSampleJSON(filename) {
-            if (filename.includes('math')) {
+            // True/False sample
+            if (filename.includes('true_false')) {
                 return {
                     "questions": [
-                        {"question_number": "1", "points_earned": 5, "points_possible": 10},
-                        {"question_number": "2", "points_earned": 10, "points_possible": 10}
+                        {"question_number": "1", "question_type": "true_false", "points_earned": 2, "points_possible": 2, "correct_answer": true},
+                        {"question_number": "2", "question_type": "true_false", "points_earned": 0, "points_possible": 2, "correct_answer": false},
+                        {"question_number": "3", "question_type": "true_false", "points_earned": 2, "points_possible": 2, "correct_answer": true},
+                        {"question_number": "4", "question_type": "true_false", "points_earned": 2, "points_possible": 2, "correct_answer": false}
                     ],
-                    "total_earned": 15, "total_possible": 20
+                    "total_earned": 6, "total_possible": 8
                 };
-            } else if (filename.includes('label')) {
+            }
+            // Matching sample - each pair is a separate question for annotation
+            else if (filename.includes('matching')) {
                 return {
                     "questions": [
-                        {"question_number": "1", "points_earned": 1, "points_possible": 1},
-                        {"question_number": "2", "points_earned": 0, "points_possible": 1},
-                        {"question_number": "3", "points_earned": 1, "points_possible": 1}
+                        {"question_number": "1", "question_type": "matching", "points_earned": 2, "points_possible": 2, "correct_answer": "B"},
+                        {"question_number": "2", "question_type": "matching", "points_earned": 2, "points_possible": 2, "correct_answer": "A"},
+                        {"question_number": "3", "question_type": "matching", "points_earned": 0, "points_possible": 2, "correct_answer": "C"},
+                        {"question_number": "4", "question_type": "matching", "points_earned": 2, "points_possible": 2, "correct_answer": "D"}
+                    ],
+                    "total_earned": 6, "total_possible": 8
+                };
+            }
+            // Fill-in-blank sample
+            else if (filename.includes('fill_blank')) {
+                return {
+                    "questions": [
+                        {"question_number": "1", "question_type": "fill_in_blank", "points_earned": 2, "points_possible": 2, "correct_answer": "Paris"},
+                        {"question_number": "2", "question_type": "fill_in_blank", "points_earned": 0, "points_possible": 2, "correct_answer": "oxygen"},
+                        {"question_number": "3", "question_type": "fill_in_blank", "points_earned": 2, "points_possible": 2, "correct_answer": "Jupiter"}
+                    ],
+                    "total_earned": 4, "total_possible": 6
+                };
+            }
+            // Ordering sample
+            else if (filename.includes('ordering')) {
+                return {
+                    "questions": [
+                        {"question_number": "1", "question_type": "ordering", "points_earned": 2, "points_possible": 5, "correct_answer": [1, 2, 3, 4], "feedback": "Correct order: Evaporation, Condensation, Precipitation, Collection"}
+                    ],
+                    "total_earned": 2, "total_possible": 5
+                };
+            }
+            // Short answer sample
+            else if (filename.includes('short_answer')) {
+                return {
+                    "questions": [
+                        {"question_number": "1", "question_type": "short_answer", "points_earned": 5, "points_possible": 5, "feedback": "Excellent explanation of photosynthesis"},
+                        {"question_number": "2", "question_type": "short_answer", "points_earned": 5, "points_possible": 5, "feedback": "All three states correctly named"}
+                    ],
+                    "total_earned": 10, "total_possible": 10
+                };
+            }
+            // Math equations sample
+            else if (filename.includes('math')) {
+                return {
+                    "questions": [
+                        {"question_number": "1", "question_type": "math_equations", "points_earned": 10, "points_possible": 10, "correct_answer": "12"},
+                        {"question_number": "2", "question_type": "math_equations", "points_earned": 3, "points_possible": 10, "correct_answer": "13", "annotation_feedback": "Error: 4×2=8 not 12"}
+                    ],
+                    "total_earned": 13, "total_possible": 20
+                };
+            }
+            // Open-ended sample
+            else if (filename.includes('open')) {
+                return {
+                    "questions": [
+                        {"question_number": "1", "question_type": "open_ended", "points_earned": 12, "points_possible": 15, "feedback": "Good points on assassination and alliances, missing economic factors"}
+                    ],
+                    "total_earned": 12, "total_possible": 15
+                };
+            }
+            // Labeling sample
+            else if (filename.includes('label')) {
+                return {
+                    "questions": [
+                        {"question_number": "1", "question_type": "labeling", "points_earned": 1, "points_possible": 1, "correct_answer": "Aorta"},
+                        {"question_number": "2", "question_type": "labeling", "points_earned": 0, "points_possible": 1, "correct_answer": "Left Ventricle", "feedback": "This is the right ventricle"},
+                        {"question_number": "3", "question_type": "labeling", "points_earned": 1, "points_possible": 1, "correct_answer": "Pulmonary Artery"}
                     ],
                     "total_earned": 2, "total_possible": 3
                 };
-            } else if (filename.includes('open')) {
-                return {
-                    "questions": [
-                        {"question_number": "1", "points_earned": 8, "points_possible": 10}
-                    ],
-                    "total_earned": 8, "total_possible": 10
-                };
             }
-            // Default: Realistic 3-question MCQ exam (1 point each)
-            // Assumes: Q1 correct, Q2 correct, Q3 wrong
+            // Default: MCQ
             return {
                 "questions": [
-                    {"question_number": "1", "points_earned": 1, "points_possible": 1},
-                    {"question_number": "2", "points_earned": 1, "points_possible": 1},
-                    {"question_number": "3", "points_earned": 0, "points_possible": 1}
+                    {"question_number": "1", "question_type": "multiple_choice", "points_earned": 1, "points_possible": 1, "correct_answer": "B"},
+                    {"question_number": "2", "question_type": "multiple_choice", "points_earned": 1, "points_possible": 1, "correct_answer": "B"},
+                    {"question_number": "3", "question_type": "multiple_choice", "points_earned": 0, "points_possible": 1, "correct_answer": "C", "feedback": "Jupiter is the largest planet"}
                 ],
                 "total_earned": 2, "total_possible": 3
             };
@@ -1828,6 +2129,28 @@ language: "english" | "arabic" | "french"`,
                             grading_results: gradingResults
                         })
                     });
+                } else if (ep.type === 'exam_report') {
+                    // Exam report - downloads file
+                    const body = document.getElementById('request-body').value;
+                    response = await fetch(ep.path, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body
+                    });
+                    
+                    if (response.ok) {
+                        // Download the file
+                        const blob = await response.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const format = JSON.parse(body).format || 'docx';
+                        a.download = `Exam_Report.${format}`;
+                        a.click();
+                        displayResponse(200, { success: true, message: 'Report downloaded!' }, performance.now() - startTime);
+                        document.getElementById('loading').classList.remove('active');
+                        return;
+                    }
                 } else {
                     const body = document.getElementById('request-body').value;
                     response = await fetch(ep.path, {
@@ -1900,7 +2223,7 @@ language: "english" | "arabic" | "french"`,
                     const imageData = d.corrected_image || data.annotation_output?.corrected_image;
                     if (imageData) {
                         statsGrid.innerHTML = `<div class="stat-card" style="background: linear-gradient(135deg, #22c55e, #16a34a); cursor: pointer; padding: 20px;" onclick="downloadData('data:image/png;base64,${imageData}', 'annotated_result.png')">
-                            <div class="value" style="font-size: 2rem;">📥</div>
+                            <div class="value" style="font-size: 2rem;">�</div>
                             <div class="label">Download Annotated Image</div>
                         </div>`;
                     }

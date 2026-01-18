@@ -109,7 +109,22 @@ Return ONLY valid JSON:
                 contents=[prompt],
                 config={"response_mime_type": "application/json"}
             )
-            return json.loads(response.text)
+            result = json.loads(response.text)
+            
+            # Ensure we have a dict with the expected structure
+            if isinstance(result, list):
+                # If Gemini returned a list, try to use first item or create default
+                result = result[0] if result and isinstance(result[0], dict) else {}
+            
+            if not isinstance(result, dict):
+                result = {}
+            
+            # Ensure all required criteria are present
+            for criterion in self.CRITERIA.keys():
+                if criterion not in result or not isinstance(result.get(criterion), dict):
+                    result[criterion] = {"status": "partial", "reason": "Could not parse AI response"}
+            
+            return result
         except Exception as e:
             return {
                 "factual_accuracy": {"status": "partial", "reason": f"Grading error: {e}"},

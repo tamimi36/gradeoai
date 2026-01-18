@@ -302,6 +302,8 @@ class GradingService:
                              points_per_blank: float = 1.0) -> Dict[str, Any]:
         # Grade fill-in-the-blank questions
         # student_answers format: {"1": ["ans1", "ans2"]} or {"1": "single_answer"}
+        # blanks format: ["answer1", "answer2"] or 
+        #   [["acceptable1", "acceptable2"], "single_answer"] for multiple acceptable answers per blank
         results = []
         total_points = 0.0
         earned_points = 0.0
@@ -332,7 +334,27 @@ class GradingService:
             
             for i, correct_blank in enumerate(correct_blanks_list):
                 student_blank = student_ans_list[i] if i < len(student_ans_list) else None
-                is_correct = self.answers_match(student_blank, correct_blank)
+                
+                # Support multiple acceptable answers per blank
+                # If correct_blank is a list, any match counts as correct
+                is_correct = False
+                matched_answer = None
+                
+                if isinstance(correct_blank, list):
+                    # Multiple acceptable answers for this blank
+                    for acceptable in correct_blank:
+                        if self.answers_match(student_blank, acceptable):
+                            is_correct = True
+                            matched_answer = acceptable
+                            break
+                    display_correct = " / ".join(str(a) for a in correct_blank[:3])
+                    if len(correct_blank) > 3:
+                        display_correct += f" (+{len(correct_blank)-3} more)"
+                else:
+                    # Single correct answer
+                    is_correct = self.answers_match(student_blank, correct_blank)
+                    matched_answer = correct_blank if is_correct else None
+                    display_correct = correct_blank
                 
                 total_blanks += 1
                 total_points += points_each
@@ -345,7 +367,8 @@ class GradingService:
                 blank_results.append({
                     'blank_number': i + 1,
                     'student_answer': student_blank,
-                    'correct_answer': correct_blank,
+                    'correct_answer': display_correct,
+                    'matched_answer': matched_answer,
                     'is_correct': is_correct
                 })
             

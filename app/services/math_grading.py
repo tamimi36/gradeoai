@@ -50,17 +50,24 @@ PEMDAS ORDER:
 3. Multiplication and Division (left to right)
 4. Addition and Subtraction (left to right)
 
+IMPORTANT:
+- List ONLY the computational steps, NOT a separate "final answer" step
+- The last computational step should naturally produce the final answer
+- Example: For "(2+3) × 4 - 6 ÷ 2 = 17", the last step is "20 - 3 = 17" (subtraction)
+- Do NOT add a redundant step like "final: 17"
+
 Return ONLY valid JSON:
 {{
     "steps": [
-        {{"step": 1, "operation": "parentheses", "expression": "..."}},
-        {{"step": 2, "operation": "exponent", "expression": "..."}},
-        {{"step": 3, "operation": "multiplication", "expression": "..."}}
+        {{"step": 1, "operation": "parentheses", "expression": "(2 + 3) = 5"}},
+        {{"step": 2, "operation": "multiplication", "expression": "5 × 4 = 20"}},
+        {{"step": 3, "operation": "division", "expression": "6 ÷ 2 = 3"}},
+        {{"step": 4, "operation": "subtraction", "expression": "20 - 3 = 17"}}
     ],
     "final_answer": "{correct_answer}"
 }}
 
-Include ALL intermediate steps in order. Use operation types: parentheses, exponent, multiplication, division, addition, subtraction, final."""
+Include ALL intermediate COMPUTATIONAL steps in order. Use operation types: parentheses, exponent, multiplication, division, addition, subtraction."""
         return prompt
     
     def _build_grading_prompt(self, problem: str, correct_answer: str, 
@@ -88,11 +95,14 @@ GRADING RULES:
 3. Example: If expected is "6 × 4 = 24" but student wrote "4 × 6 = 24", mark as "present"
 4. If student combined steps correctly, give credit for both steps covered
 5. Focus on MATHEMATICAL CORRECTNESS, not exact format
+6. If the student's final numeric answer matches {correct_answer}, the last step MUST be "present"
 
 STATUS OPTIONS:
 - "present": The mathematical result/operation is shown correctly (even if different format)
 - "partial": Step attempted but has a calculation error (wrong number)
 - "absent": This mathematical operation is not shown anywhere in student's work
+
+CRITICAL: Check if student's final answer is {correct_answer}. If YES, set final_answer_correct=true.
 
 Return ONLY valid JSON:
 {{
@@ -222,9 +232,21 @@ Include an entry for EVERY expected step."""
             
             final_statuses.append(self._calculate_mode_or_median(statuses))
         
-        # Check final answer from last pass
-        if pass_results:
-            final_answer_correct = pass_results[-1].get('final_answer_correct', False)
+        # Check final answer from ALL passes and use majority vote
+        final_answer_votes = []
+        for pr in pass_results:
+            final_answer_votes.append(pr.get('final_answer_correct', False))
+        
+        # Majority vote for final answer correctness
+        true_count = sum(1 for v in final_answer_votes if v)
+        final_answer_correct = true_count >= 2  # At least 2 out of 3 say correct
+        
+        # CONSISTENCY FIX: If final answer is correct, ensure last step gets full credit
+        # This prevents AI inconsistency from affecting the final score
+        if final_answer_correct and final_statuses:
+            # Force the last step to 'present' if final answer is correct
+            # because arriving at the correct answer means the final computation was done right
+            final_statuses[-1] = 'present'
         
         # Calculate scores (CODE, not AI)
         step_results = []
@@ -265,9 +287,33 @@ Include an entry for EVERY expected step."""
                 'reason': reason
             })
         
+        # Build feedback text that makes sense for annotation
+        # Find first error step and describe it clearly
+        annotation_feedback = ""
+        detailed_feedback = ""
+        
+        for sr in step_results:
+            if sr['status'] == 'partial':
+                # Partial credit - show the step with error
+                annotation_feedback = f"Error: {sr['expected']}"
+                detailed_feedback = f"Step {sr['step']} ({sr['operation']}): {sr['reason']}"
+                break
+            elif sr['status'] == 'absent':
+                # Missing step - show what was expected
+                annotation_feedback = f"Missing: {sr['expected']}"
+                detailed_feedback = f"Step {sr['step']} ({sr['operation']}) not shown: {sr['expected']}"
+                break
+        
+        # If all present but final answer wrong
+        if not annotation_feedback and not final_answer_correct:
+            annotation_feedback = f"Final: {correct_answer}"
+            detailed_feedback = f"Work is correct but final answer should be {correct_answer}"
+        
         return {
             'question_number': q_num,
+            'question_type': 'math_equations',
             'problem': problem,
+            'correct_answer': correct_answer,
             'student_work': student_work[:300] + '...' if len(student_work) > 300 else student_work,
             'final_answer_correct': final_answer_correct,
             'total_steps': len(expected_steps),
@@ -277,7 +323,10 @@ Include an entry for EVERY expected step."""
             'high_variance_steps': high_variance_steps,
             'points_earned': round(total_earned, 2),
             'points_possible': max_points,
-            'total_percentage': round((total_earned / max_points * 100) if max_points > 0 else 0, 2)
+            'total_percentage': round((total_earned / max_points * 100) if max_points > 0 else 0, 2),
+            # NEW: Feedback fields for annotation
+            'feedback': detailed_feedback,  # Detailed for API response
+            'annotation_feedback': annotation_feedback  # Short for image annotation
         }
     
     def grade_questions(self, questions: List[Dict[str, Any]], 

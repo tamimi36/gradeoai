@@ -88,10 +88,10 @@ class GenerateAnnotation(Resource):
             except Exception:
                 return {'success': False, 'error': 'Invalid base64 encoding'}, 400
             
-            # Generate annotations
+            # Generate annotations (dry run - metadata only for teacher review)
             from app.services.annotation_service import AnnotationService
             service = AnnotationService()
-            result = service.annotate_exam(exam_bytes, file_type, grading_results)
+            result = service.annotate_exam(exam_bytes, file_type, grading_results, draw_on_image=False)
             
             return {'success': True, 'data': result}, 200
             

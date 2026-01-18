@@ -2,7 +2,7 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 from werkzeug.datastructures import FileStorage
 
-from app.services.workflow_service import WorkflowService
+from app.services.workflow_service (leave it)  import WorkflowService
 
 workflow_ns = Namespace('workflow', description='Full exam processing workflow')
 

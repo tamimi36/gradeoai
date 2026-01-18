@@ -1,47 +1,57 @@
-﻿# Gradeo API - Complete System Report
+﻿# Gradeo API Documentation | توثيق واجهة برمجة تطبيقات Gradeo
 
-## Executive Summary
-
-Gradeo is a production-ready API for automated exam grading. It combines:
-- **OCR** - Extracts questions from scanned exam papers using Gemini AI
-- **Grading** - Grades 13 different question types with AI and code-based scoring
-- **Annotation** - Overlays teacher-style correction marks on scanned papers using OpenAI
+**Version:** 1.0  
+**Base URL:** `http://your-server:5000`
 
 ---
 
-## System Architecture
+## System Overview | نظرة عامة على النظام
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         GRADEO API                                  │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────────┐    ┌──────────────────┐    │
-│  │   OCR       │    │    GRADING      │    │   ANNOTATION     │    │
-│  │             │    │                 │    │                  │    │
-│  │ • English   │    │ • 13 Types      │    │ • OpenAI DALL-E  │    │
-│  │ • Arabic    │───▶│ • AI + Code     │───▶│ • Teacher Style  │    │
-│  │ • French    │    │ • Multi-pass    │    │ • Green/Red Pen  │    │
-│  │             │    │ • Feedback      │    │                  │    │
-│  └─────────────┘    └─────────────────┘    └──────────────────┘    │
-│                                                                     │
-│                    Powered by: Gemini 2.0 Flash                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Gradeo is a production-ready API for automated exam grading combining:
+تم تصميم واجهة Gradeo لتصحيح الامتحانات آليًا وتجمع بين:
+- **OCR** - Extracts questions from scanned exam papers (3 languages, 12 question types)
+من ورقات الامتحان الممسوحة ضوئيًا (3 لغات، 12 نوعًا من الأسئلة) OCR استخراج الأسئلة عبر -
+- **Grading** - Grades all question types with AI + code-based scoring (3-pass consistency)
+تصحيح كافة أنواع الأسئلة باستخدام الذكاء الاصطناعي والتصحيح البرمجي (بثبات عبر 3 محاولات) -
+- **Annotation** - Overlays teacher-style correction marks on scanned papers
+إضافة علامات التصحيح بأسلوب المعلم على الأوراق الممسوحة ضوئيًا -
+- **Review Studio** - Interactive web interface for teacher review and customization
+واجهة ويب تفاعلية لمراجعة وتخصيص التصحيح من قبل المعلم -
+- **Reports** - Generates professional DOCX/PDF grade reports
+توليد تقارير درجات احترافية بصيغة DOCX و PDF -
+
+**Powered by:** Google Gemini 2.0 Flash
 
 ---
 
-## Part 1: OCR System
+## Table of Contents | جدول المحتويات
 
-### Overview
-Extracts structured question data from scanned exam papers (PDF or images).
+1. [OCR Endpoints | نقاط نهاية OCR](#1-ocr-endpoints--نقاط-نهاية-ocr)
+2. [Grading Endpoints | نقاط نهاية التصحيح](#2-grading-endpoints--نقاط-نهاية-التصحيح)
+3. [Annotation Endpoint | نقطة نهاية التعليقات](#3-annotation-endpoint--نقطة-نهاية-التعليقات)
+4. [Report Endpoint | نقطة نهاية التقارير](#4-report-endpoint--نقطة-نهاية-التقارير)
+5. [Review Studio | استوديو المراجعة](#5-review-studio--استوديو-المراجعة)
+6. [Test Console | وحدة التحكم للاختبار](#6-test-console--وحدة-التحكم-للاختبار)
+7. [Frontend Integration Guide | دليل دمج الواجهة الأمامية](#7-frontend-integration-guide--دليل-دمج-الواجهة-الأمامية)
 
-### Supported Languages
-- **English** - Full detailed prompts
-- **Arabic** - Native Arabic prompts (أسئلة عربية)
-- **French** - French language support
+---
 
-### 13 Question Types
+## 1. OCR Endpoints | نقاط نهاية OCR
+
+Extract structured question data from scanned exam papers (PDF or images).
+استخراج بيانات الأسئلة المنظمة من أوراق الامتحان الممسوحة ضوئيًا (ملفات PDF أو صور).
+
+**Base Path:** `/api/ocr`
+
+### Supported Languages | اللغات المدعومة
+
+| Language | Endpoint | Description |
+|----------|----------|-------------|
+| English | `/api/ocr/english` | Full English prompts |
+| Arabic | `/api/ocr/arabic` | Native Arabic prompts (أسئلة عربية) |
+| French | `/api/ocr/french` | French language support |
+
+### 12 Question Types | 12 نوع من الأسئلة
 
 | # | Type | Description | Key Fields |
 |---|------|-------------|------------|
@@ -50,478 +60,1493 @@ Extracts structured question data from scanned exam papers (PDF or images).
 | 3 | `matching` | Two columns to connect | `left_column`, `right_column`, `correct_matches` |
 | 4 | `fill_in_blank` | Sentences with blanks | `blanks` |
 | 5 | `ordering` | Items to arrange | `ordering_items`, `correct_order` |
-| 6 | **`short_answer`** | Brief factual answers | `expected_answer_count`, `acceptable_answers` |
+| 6 | `short_answer` | Brief factual answers | `expected_answer_count`, `acceptable_answers` |
 | 7 | `open_ended` | Analytical written responses | `answer_length`, `expected_keywords`, `model_answer` |
 | 8 | `compare_contrast` | Compare 2+ items | `compare_items`, `grading_table` |
 | 9 | `definition` | Define a term | `term_to_define`, `model_answer` |
-| 10 | `labeling` | Label diagram parts (write/draw on shape) | `labeling_items`, `diagram_description` |
-| 11 | `labeling_image` | Label on image (handwriting OCR) | `labeling_items`, `diagram_description` |
-| 12 | `math_equation` | Math problems (PEMDAS) | `math_content`, `correct_answer` |
-| 13 | `table` | Table completion | `table_headers`, `grading_table` |
+| 10 | `labeling` | Label diagram parts | `labeling_items`, `diagram_description` |
+| 11 | `math_equation` | Math problems (PEMDAS) | `math_content`, `correct_answer` |
+| 12 | `table` | Table completion | `table_headers`, `grading_table` |
 
-> **NEW: short_answer** - For brief factual questions like "State 4...", "What is...?", "Name..."
-> **Updated: open_ended** - Now specifically for analytical questions requiring explanation
-> **Updated: labeling** - Now specifically for diagram labeling where students write/draw on shapes
+> **Note:** `short_answer` is for brief factual questions ("State 4...", "Name..."), while `open_ended` is for analytical questions requiring explanation.
+>
+> **ملاحظة:** تستخدم `short_answer` للأسئلة الوقائعية القصيرة ("اذكر 4..."، "سمّ...")، بينما تستخدم `open_ended` للأسئلة التحليلية التي تتطلب شرحًا.
 
-### How OCR Works
+### `POST /api/ocr/english`
+### `POST /api/ocr/arabic`
+### `POST /api/ocr/french`
 
-```python
-# 1. Upload exam paper (PDF or image)
-# 2. Select language (english/arabic/french)
-# 3. Gemini AI extracts all questions with structured output
+**Request Type:** `multipart/form-data`
 
-response = client.models.generate_content(
-    model="gemini-2.0-flash",
-    contents=[prompt, image],
-    config={
-        "response_mime_type": "application/json",
-        "response_schema": OCRResponse  # Pydantic model
-    }
-)
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | File | ✅ | Image file (PNG, JPG, PDF) |
 
-### API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/ocr/english` | POST | OCR with English prompts |
-| `/api/ocr/arabic` | POST | OCR with Arabic prompts |
-| `/api/ocr/french` | POST | OCR with French prompts |
-
----
-
-## Part 2: Grading System
-
-### Grading Categories
-
-**Category A: Direct Answer (Code-Based)**
-- Multiple Choice, True/False, Matching, Fill-in-Blank, Ordering, Labeling
-
-**Category B: AI-Graded with Multi-Pass**
-- Open-Ended, Compare/Contrast, Definition, Table, Math Equations, Labeling-Image
-
----
-
-### Category A: Code-Based Grading
-
-#### Multiple Choice & True/False
-```python
-def grade_multiple_choice(questions, student_answers, points):
-    for q in questions:
-        correct = q['correct_answer']
-        student = student_answers.get(q['question_number'])
-        is_correct = normalize(student) == normalize(correct)
-        # Award points if correct
-```
-
-#### Matching
-```python
-def grade_matching(question, student_matches):
-    correct_matches = question['correct_matches']  # {"1": "a", "2": "b"}
-    for left_id, expected_right in correct_matches.items():
-        student_right = student_matches.get(left_id)
-        if normalize(student_right) == normalize(expected_right):
-            points_earned += points_per_pair
-```
-
-#### Fill-in-Blank
-```python
-def grade_fill_blank(question, student_blanks):
-    correct_blanks = question['blanks']  # ["answer1", "answer2"]
-    for i, correct in enumerate(correct_blanks):
-        student = student_blanks[i] if i < len(student_blanks) else ""
-        if answers_match(student, correct):
-            points_earned += points_per_blank
-```
-
-#### Ordering
-```python
-def grade_ordering(question, student_order):
-    correct_order = question['correct_order']  # ["C", "A", "B"]
-    for i, correct_id in enumerate(correct_order):
-        if i < len(student_order) and student_order[i] == correct_id:
-            points_earned += points_per_position
-```
-
-#### Labeling (Text Input)
-```python
-def grade_labeling(question, student_labels):
-    for item in question['labeling_items']:
-        label_id = item['label_id']
-        correct = item['correct_label']
-        student = student_labels.get(label_id)
-        if answers_match(student, correct):
-            points_earned += points_per_label
-```
-
----
-
-### Category B: AI-Graded with Multi-Pass
-
-#### Core Logic: 3-Pass Grading
-
-All AI-graded questions use 3 passes for consistency:
-
-```python
-# Run grading 3 times
-pass_results = []
-for _ in range(3):
-    result = call_gemini(grading_prompt)
-    pass_results.append(result)
-
-# For each criterion/item, take MODE (most common result)
-for criterion in criteria:
-    statuses = [pass[criterion]['status'] for pass in pass_results]
-    final_status = get_mode(statuses)  # e.g., ["present", "present", "absent"] → "present"
-    
-    # If all 3 differ → FLAG for human review, use MEDIAN
-    if len(set(statuses)) == 3:
-        flag_for_review = True
-        final_status = get_median(statuses)  # absent < partial < present
-```
-
-#### Open-Ended Questions
-
-**Fixed Criteria (5):**
-| Criterion | Weight | Description |
-|-----------|--------|-------------|
-| `relevance` | 25% | Answers the question asked |
-| `completeness` | 25% | Covers all required points |
-| `accuracy` | 20% | Factually correct |
-| `key_terms` | 15% | Uses expected keywords |
-| `clarity` | 15% | Well-organized, clear |
-
-**Grading Prompt:**
-```
-For each criterion, evaluate:
-- "strong": Fully demonstrated (100%)
-- "adequate": Partially demonstrated (60%)
-- "weak": Minimally shown (30%)
-- "missing": Not present (0%)
-
-Return JSON with status and reason for each criterion.
-```
-
-**Scoring (Code-Based):**
-```python
-STATUS_SCORES = {'strong': 1.0, 'adequate': 0.6, 'weak': 0.3, 'missing': 0.0}
-
-for criterion, weight in CRITERIA.items():
-    status = results[criterion]['status']
-    earned += weight * STATUS_SCORES[status] * max_points
-```
-
----
-
-#### Compare/Contrast & Table Questions
-
-**Checklist-Based Grading:**
-
-Teacher provides expected points as a grading table:
-```python
-grading_table = [
-    {"item": "Mitosis produces 2 identical cells", "points": 2.5},
-    {"item": "Meiosis produces 4 different cells", "points": 2.5},
-    {"item": "Mitosis is for growth", "points": 2.5}
-]
-```
-
-**AI Grading Prompt:**
-```
-For each item in the checklist:
-- "present": Student clearly stated this point
-- "partial": Partially mentioned or implied
-- "absent": Not mentioned
-
-Return status and reason for each item.
-```
-
-**Scoring:**
-```python
-for item in grading_table:
-    if status == 'present':
-        earned += item['points']  # 100%
-    elif status == 'partial':
-        earned += item['points'] * 0.5  # 50%
-    # absent = 0%
-```
-
----
-
-#### Definition Questions
-
-**3 Meaning Units:**
-| Unit | Weight | Description |
-|------|--------|-------------|
-| `core_concept` | 50% | Main/essential meaning |
-| `required_properties` | 30% | Key characteristics |
-| `scope_context` | 20% | Correct scope/application |
-
-**AI evaluates each unit as present/partial/absent with reasoning.**
-
----
-
-#### Math Equations (PEMDAS)
-
-**Step 1: AI generates PEMDAS steps**
-```python
-prompt = f"""
-Analyze: {problem}
-Final answer: {correct_answer}
-
-Break into PEMDAS steps:
-1. Parentheses
-2. Exponents
-3. Multiplication/Division (left to right)
-4. Addition/Subtraction (left to right)
-
-Return steps as JSON.
-"""
-```
-
-**Step 2: AI grades student work against steps (3 passes)**
-```python
-# For each expected step:
-# - "present": Student showed this correctly
-# - "partial": Attempted with error
-# - "absent": Not shown
-
-# AI recognizes equivalent approaches:
-# "6 × 4 = 24" same as "4 × 6 = 24"
-```
-
-**Step 3: Code calculates final score**
-```python
-points_per_step = total_points / num_steps
-for step in steps:
-    if status == 'present': earned += points_per_step
-    elif status == 'partial': earned += points_per_step * 0.5
-```
-
-**Output includes:**
+**Response:**
 ```json
 {
-  "expected": "2 + 3 = 5",
-  "expected_latex": "$2 + 3 = 5$",
-  "status": "present",
-  "reason": "Student correctly computed 2+3=5"
+  "success": true,
+  "data": {
+    "raw_text": "Full OCR text...",
+    "structured_data": {
+      "questions": [
+        {
+          "order": 1,
+          "question_number": "1",
+          "question_type": "multiple_choice",
+          "question_text": "What is the capital of France?",
+          "options": {"A": "London", "B": "Paris", "C": "Berlin"},
+          "correct_answer": "B",
+          "points": 2.0,
+          "instructions": "Choose the best answer"
+        },
+        {
+          "order": 2,
+          "question_number": "2",
+          "question_type": "short_answer",
+          "question_text": "State 3 primary colors",
+          "expected_answer_count": 3,
+          "acceptable_answers": ["red", "blue", "yellow"],
+          "points": 3.0
+        }
+      ],
+      "exam_header": {
+        "title": "Geography Quiz",
+        "subject": "Geography",
+        "date": "2026-01-17",
+        "instructions": "Answer all questions",
+        "sections": ["Part A", "Part B"]
+      }
+    }
+  }
+}
+```
+
+**Frontend Integration | دمج الواجهة الأمامية:**
+
+```javascript
+// Mobile / Web - Upload image for OCR
+const formData = new FormData();
+formData.append('file', imageFile);
+
+// Choose endpoint based on document language
+const language = 'english'; // or 'arabic', 'french'
+const response = await fetch(`/api/ocr/${language}`, {
+  method: 'POST',
+  body: formData
+});
+
+const result = await response.json();
+if (result.success) {
+  const questions = result.data.structured_data.questions;
+  // Each question has: question_type, question_text, correct_answer, points, etc.
 }
 ```
 
 ---
 
-#### Labeling-Image (Handwriting OCR)
+## 2. Grading Endpoints | نقاط نهاية التصحيح
 
-Uses Gemini Vision to read handwritten labels on diagrams:
+Grade student answers against correct answers.
+تصحيح إجابات الطلاب مقابل الإجابات الصحيحة.
 
-```python
-prompt = f"""
-Look at this diagram image with student's handwritten labels.
-For each label position, identify what the student wrote.
+**Base Path:** `/api/grading`
 
-Expected labels:
-{labeling_items}
+### Grading Categories | فئات التصحيح
 
-Return JSON mapping label_id to student's handwritten text.
-"""
+**Category A: Code-Based Grading (Instant)**
+**الفئة أ: التصحيح البرمجي (فوري)**
+- Multiple Choice, True/False, Matching, Fill-in-Blank, Ordering
+- الاختيار من متعدد، صح/خطأ، المطابقة، أكمل الفراغ، الترتيب
 
-result = client.models.generate_content(
-    model="gemini-2.0-flash",
-    contents=[prompt, student_image]
-)
+**Category B: AI-Graded with 3-Pass Consistency**
+**الفئة ب: تصحيح الذكاء الاصطناعي (أمان بـ 3 محاولات)**
+- Short Answer, Open-Ended, Compare/Contrast, Definition, Table, Math Equations, Labeling
+- إجابة قصيرة، أسئلة مفتوحة، مقارنة وتباين، تعريف، جداول، معادلات رياضية، تسمية
+
+> **3-Pass Grading:** AI grades each question 3 times, takes the mode (most common) result. If all 3 differ, flags for human review.
+>
+> **التصحيح بـ 3 محاولات:** يقوم الذكاء الاصطناعي بتصحيح كل سؤال 3 مرات، ويأخذ النتيجة الأكثر تكرارًا. إذا اختلفت النتائج الثلاثة، يتم تمييز السؤال للمراجعة البشرية.
+
+
+### 2.1 Multiple Choice | الاختيار من متعدد
+
+**Endpoint:** `POST /api/grading/multiple-choice` or `POST /api/grading/mcq`
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "What is the capital of France?",
+      "options": {"A": "London", "B": "Paris", "C": "Berlin", "D": "Madrid"},
+      "correct_answer": "B"
+    }
+  ],
+  "student_answers": {"1": "B", "2": "C"},
+  "points_per_question": 1.0
+}
 ```
 
-Then grades extracted text against correct labels.
+**Response (All Fields):**
+```json
+{
+  "success": true,
+  "data": {
+    "question_type": "multiple_choice",
+    "total_questions": 2,
+    "correct_count": 1,
+    "incorrect_count": 1,
+    "points_earned": 1.0,
+    "points_possible": 2.0,
+    "percentage": 50.0,
+    "details": [
+      {
+        "question_number": "1",
+        "question_text": "What is the capital of France?",
+        "student_answer": "B",
+        "correct_answer": "B",
+        "is_correct": true,
+        "points_earned": 1.0,
+        "points_possible": 1.0
+      }
+    ]
+  }
+}
+```
 
 ---
 
-### All Grading Endpoints
+### 2.2 True/False | صح/خطأ
 
-| Endpoint | Question Type | Method |
-|----------|--------------|--------|
-| `/api/grading/mcq` | Multiple Choice | Code |
-| `/api/grading/true-false` | True/False | Code |
-| `/api/grading/matching` | Matching | Code |
-| `/api/grading/fill-in-blank` | Fill in Blank | Code |
-| `/api/grading/ordering` | Ordering | Code |
-| `/api/grading/labeling` | Labeling (diagram) | AI 3-pass |
-| `/api/grading/short-answer` | **Short Answer (NEW)** | AI 3-pass |
-| `/api/grading/labeling-image` | Labeling (image) | AI + Code |
-| `/api/grading/open-ended` | Open-Ended (analytical) | AI 3-pass |
-| `/api/grading/compare-contrast` | Compare/Contrast | AI 3-pass |
-| `/api/grading/definition` | Definition | AI 3-pass |
-| `/api/grading/table` | Table | AI 3-pass |
-| `/api/grading/math-equations` | Math | AI 3-pass |
+**Endpoint:** `POST /api/grading/true-false`
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "statement": "The Earth is flat",
+      "correct_answer": false
+    }
+  ],
+  "student_answers": {"1": false},
+  "points_per_question": 1.0
+}
+```
 
 ---
 
-### Short Answer Grading (NEW)
+### 2.3 Matching | المطابقة
 
-**Purpose:** Grade brief factual answers (not analytical)
+**Endpoint:** `POST /api/grading/matching`
 
-**Examples:** "State 4 characteristics of...", "What is the capital of...?", "Name 3 primary colors"
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "left_column": [
+        {"id": "1", "text": "Dog"},
+        {"id": "2", "text": "Cat"}
+      ],
+      "right_column": [
+        {"id": "a", "text": "Barks"},
+        {"id": "b", "text": "Meows"}
+      ],
+      "correct_matches": {"1": "a", "2": "b"},
+      "points": 2.0
+    }
+  ],
+  "student_answers": {"1": {"1": "a", "2": "b"}},
+  "points_per_pair": 1.0
+}
+```
+
+---
+
+### 2.4 Fill-in-the-Blank | أكمل الفراغ
+
+**Endpoint:** `POST /api/grading/fill-in-blank`
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "Water is made of _____ and _____.",
+      "blanks": ["hydrogen", "oxygen"],
+      "points": 2.0
+    }
+  ],
+  "student_answers": {"1": ["hydrogen", "oxygen"]},
+  "points_per_blank": 1.0
+}
+```
+
+---
+
+### 2.5 Ordering | الترتيب
+
+**Endpoint:** `POST /api/grading/ordering`
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "Order planets from Sun",
+      "ordering_items": [
+        {"item_id": "A", "content": "Mercury"},
+        {"item_id": "B", "content": "Venus"},
+        {"item_id": "C", "content": "Earth"}
+      ],
+      "correct_order": ["A", "B", "C"],
+      "points": 3.0
+    }
+  ],
+  "student_answers": {"1": ["A", "B", "C"]},
+  "points_per_position": 1.0
+}
+```
+
+---
+
+### 2.6 Labeling | التسمية
+
+**Endpoint:** `POST /api/grading/labeling`
+
+Grades diagram labeling questions based on data sent from the request (typically extracted during the OCR process).
+
+يصحح أسئلة تسمية الأجزاء على الرسوم البيانية بناءً على البيانات المرسلة في الطلب (عادةً ما يتم استخراجها أثناء عملية OCR).
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "diagram_description": "Human heart diagram with numbered pointers",
+      "labeling_items": [
+        {"label_id": "1", "pointer_description": "Top left chamber", "correct_label": "Left Atrium"},
+        {"label_id": "2", "pointer_description": "Bottom left chamber", "correct_label": "Left Ventricle"}
+      ],
+      "points": 2.0
+    }
+  ],
+  "student_answers": {"1": {"1": "Left Atrium", "2": "Left Ventricle"}},
+  "points_per_label": 1.0
+}
+```
+
+
+---
+
+### 2.7 Short Answer (NEW) | الإجابات القصيرة
+
+**Endpoint:** `POST /api/grading/short-answer`
+
+For brief factual answers (not analytical). Examples: "State 4 characteristics...", "Name 3 primary colors"
+
+للإجابات الوقائعية القصيرة. أمثلة: "اذكر 4 خصائص..."، "سمّ 3 ألوان أساسية"
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "State 3 primary colors",
+      "acceptable_answers": ["red", "blue", "yellow"],
+      "expected_answer_count": 3,
+      "points": 3.0
+    }
+  ],
+  "student_answers": {"1": "Red, blue, and yellow"}
+}
+```
+
+**Response (AI-Graded 3-Pass):**
+```json
+{
+  "success": true,
+  "data": {
+    "question_type": "short_answer",
+    "total_questions": 1,
+    "grading_passes_per_question": 3,
+    "points_earned": 3.0,
+    "points_possible": 3.0,
+    "percentage": 100.0,
+    "details": [
+      {
+        "question_number": "1",
+        "criteria_results": {
+          "factual_accuracy": {"status": "present", "weight": 0.6, "reason": "All 3 colors are correct"},
+          "completeness": {"status": "present", "weight": 0.3, "reason": "All 3 requested items present"},
+          "terminology": {"status": "present", "weight": 0.1, "reason": "Uses correct color names"}
+        },
+        "points_earned": 3.0,
+        "points_possible": 3.0
+      }
+    ]
+  }
+}
+```
 
 **Criteria (3):**
+
 | Criterion | Weight | Description |
 |-----------|--------|-------------|
 | `factual_accuracy` | 60% | Is the answer factually correct? |
 | `completeness` | 30% | Are all requested items present? |
 | `terminology` | 10% | Uses correct terms? |
 
-**Status Scores:**
-- `present` = 100%
-- `partial` = 50%
-- `absent` = 0%
+---
 
-**Uses 3-pass grading with mode/median for consistency.**
+### 2.8 Open-Ended (AI Grading) | الأسئلة المفتوحة
+
+**Endpoint:** `POST /api/grading/open-ended`
+
+Uses AI to grade essay-type answers against a model answer.
+يستخدم الذكاء الاصطناعي لتصحيح الإجابات الإنشائية مقابل إجابة نموذجية.
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "Explain the process of photosynthesis.",
+      "model_answer": "Photosynthesis is the process by which green plants use sunlight, water, and carbon dioxide to produce glucose and oxygen. The process occurs in chloroplasts using chlorophyll.",
+      "expected_keywords": ["chlorophyll", "sunlight", "glucose", "carbon dioxide", "oxygen"],
+      "points": 10.0,
+      "answer_length": "long"
+    }
+  ],
+  "student_answers": {"1": "Plants use sunlight to make food using chlorophyll in leaves..."}
+}
+```
+
+**Response (All Fields - AI-Graded):**
+```json
+{
+  "success": true,
+  "data": {
+    "question_type": "open_ended",
+    "total_questions": 1,
+    "grading_passes_per_question": 3,
+    "criteria_used": ["core_concept", "logical_explanation", "key_terms", "clarity_structure"],
+    "flagged_for_review": 0,
+    "points_earned": 8.5,
+    "points_possible": 10.0,
+    "percentage": 85.0,
+    "details": [
+      {
+        "question_number": "1",
+        "student_answer": "Plants use sunlight to make food...",
+        "criteria_results": {
+          "core_concept": {"status": "full", "weight": 0.4, "score": 0.4, "reason": "Student correctly explained photosynthesis"},
+          "logical_explanation": {"status": "partial", "weight": 0.3, "score": 0.15, "reason": "Flow is good but missing details"},
+          "key_terms": {"status": "full", "weight": 0.2, "score": 0.2, "found": ["chlorophyll", "sunlight"]},
+          "clarity_structure": {"status": "full", "weight": 0.1, "score": 0.1, "reason": "Clear writing"}
+        },
+        "grading_passes": 3,
+        "flag_for_review": false,
+        "high_variance_criteria": [],
+        "total_percentage": 85.0,
+        "points_earned": 8.5,
+        "points_possible": 10.0
+      }
+    ]
+  }
+}
+```
 
 ---
 
-### Labeling Grading (Updated)
+### 2.9 Compare/Contrast | المقارنة والتباين
 
-**Purpose:** Grade diagram labeling questions using LLM semantic matching
+**Endpoint:** `POST /api/grading/compare-contrast`
 
-**How it works:**
-1. Send label pairs to Gemini AI (correct vs student answer)
-2. AI returns `present/partial/absent` for each label
-3. Run 3 times for consistency (3-pass)
-4. Use mode/median for final status
+Grade comparisons between two or more items using a criteria table.
+تصحيح المقارنات بين عنصرين أو أكثر باستخدام جدول معايير.
 
-**Benefits:**
-- Accepts synonyms ("LA" = "Left Atrium")
-- Handles minor spelling errors
-- Semantic understanding (not exact string match)
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "Compare and contrast mitosis and meiosis. Discuss similarities and differences.",
+      "compare_items": ["mitosis", "meiosis"],
+      "grading_table": [
+        {"item": "Both involve cell division", "points": 2.0},
+        {"item": "Mitosis produces 2 identical cells", "points": 2.5},
+        {"item": "Meiosis produces 4 different cells", "points": 2.5},
+        {"item": "Mitosis is for growth, meiosis for reproduction", "points": 3.0}
+      ],
+      "points": 10.0
+    }
+  ],
+  "student_answers": {"1": "Mitosis and meiosis are both cell division processes..."}
+}
+```
 
 ---
 
-## Part 3: Annotation System
+### 2.10 Definition | التعريف
 
-### Overview
-Takes graded exams and overlays teacher-style correction marks using OpenAI DALL-E image generation.
+**Endpoint:** `POST /api/grading/definition`
 
-### How It Works (Updated)
+Grade term definitions using required keywords and concepts.
+تصحيح تعريفات المصطلحات باستخدام الكلمات المفتاحية والمفاهيم المطلوبة.
 
-```
-1. INPUT: Scanned exam (image) + grading results
-
-2. AI IMAGE GENERATION (OpenAI DALL-E):
-   - Simple teacher-style prompt
-   - Green ✓ for correct answers
-   - Red ✗ for wrong answers
-   - Write score in score box
-   - Natural teacher handwriting style
-
-3. FALLBACK (PIL):
-   - If OpenAI fails, uses local PIL drawing
-   - Handwritten-style marks with random offsets
-
-4. OUTPUT: Annotated image with teacher corrections
-```
-
-### Simple AI Prompt
-
-```python
-prompt = f"""You are a teacher grading this exam with a red and green pen.
-
-Q1: CORRECT (1/1)
-Q2: WRONG (0/1)
-...
-Total: 2/3
-
-Mark it like a real teacher would:
-- Green ✓ for correct answers
-- Red ✗ for wrong answers
-- Write the score in the score box
-
-Use natural teacher handwriting style."""
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "term_to_define": "Photosynthesis",
+      "model_definition": "Photosynthesis is the process by which green plants and some organisms use sunlight, water, and carbon dioxide to synthesize glucose and release oxygen.",
+      "required_keywords": ["sunlight", "water", "carbon dioxide", "glucose", "oxygen", "chlorophyll"],
+      "points": 10.0
+    }
+  ],
+  "student_answers": {"1": "Photosynthesis is when plants make food from sunlight..."}
+}
 ```
 
-### OpenAI Integration
+---
 
-```python
-import openai
+### 2.11 Math Equations (PEMDAS) | المعادلات الرياضية
 
-client = openai.OpenAI(api_key=OPENAI_API_KEY)
+**Endpoint:** `POST /api/grading/math-equations`
 
-response = client.images.edit(
-    model="dall-e-2",
-    image=exam_image_bytes,
-    mask=mask_bytes,  # Full image mask
-    prompt=prompt,
-    n=1,
-    size="1024x1024"
-)
+Grades arithmetic problems using PEMDAS (Order of Operations) step-by-step breakdown. Uses AI multi-pass grading for consistency.
 
-annotated_url = response.data[0].url
+يصحح المسائل الحسابية باستخدام ترتيب العمليات (PEMDAS) خطوة بخطوة. يستخدم التصحيح المتعدد بالذكاء الاصطناعي للاتساق.
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "Solve showing all steps: (2 + 3) × 4 - 6 ÷ 2",
+      "math_content": "(2 + 3) × 4 - 6 ÷ 2",
+      "correct_answer": "17",
+      "points": 10.0
+    }
+  ],
+  "student_answers": {
+    "1": "2+3=5\n5×4=20\n6÷2=3\n20-3=17"
+  }
+}
 ```
 
-### Annotation Endpoint
+**Response (All Fields - PEMDAS Step Grading):**
+```json
+{
+  "success": true,
+  "data": {
+    "question_type": "math_equation",
+    "total_questions": 1,
+    "grading_passes_per_question": 3,
+    "flagged_for_review": 0,
+    "points_earned": 10.0,
+    "points_possible": 10.0,
+    "percentage": 100.0,
+    "details": [
+      {
+        "question_number": "1",
+        "problem": "(2 + 3) × 4 - 6 ÷ 2",
+        "correct_answer": "17",
+        "student_work": "2+3=5\n5×4=20\n6÷2=3\n20-3=17",
+        "final_answer_correct": true,
+        "total_steps": 4,
+        "step_results": [
+          {
+            "step": 1,
+            "operation": "parentheses",
+            "expected": "(2 + 3) = 5",
+            "expected_latex": "$(2 + 3) = 5$",
+            "status": "present",
+            "points_earned": 2.5,
+            "points_possible": 2.5,
+            "reason": "Student correctly evaluates parentheses: 2+3=5"
+          },
+          {
+            "step": 2,
+            "operation": "multiplication",
+            "expected": "5 × 4 = 20",
+            "expected_latex": "$5 \\times 4 = 20$",
+            "status": "present",
+            "points_earned": 2.5,
+            "points_possible": 2.5,
+            "reason": "Student correctly multiplies: 5×4=20"
+          },
+          {
+            "step": 3,
+            "operation": "division",
+            "expected": "6 ÷ 2 = 3",
+            "expected_latex": "$6 \\div 2 = 3$",
+            "status": "present",
+            "points_earned": 2.5,
+            "points_possible": 2.5,
+            "reason": "Student correctly divides: 6÷2=3"
+          },
+          {
+            "step": 4,
+            "operation": "subtraction",
+            "expected": "20 - 3 = 17",
+            "expected_latex": "$20 - 3 = 17$",
+            "status": "present",
+            "points_earned": 2.5,
+            "points_possible": 2.5,
+            "reason": "Student correctly subtracts to get final answer"
+          }
+        ],
+        "grading_passes": 3,
+        "flag_for_review": false,
+        "high_variance_steps": [],
+        "points_earned": 10.0,
+        "points_possible": 10.0,
+        "total_percentage": 100.0,
+        "feedback": "",
+        "annotation_feedback": ""
+      }
+    ]
+  }
+}
+```
+
+**Step Status Values | قيم حالة الخطوة:**
+
+| Status | Description | Points | الوصف |
+|--------|-------------|--------|-------|
+| `present` | Step shown correctly | 100% | الخطوة صحيحة |
+| `partial` | Step attempted with error | 50% | محاولة مع خطأ |
+| `absent` | Step not shown | 0% | الخطوة مفقودة |
+
+**Supported Operations:**
+- `parentheses` - Brackets/parentheses evaluation
+- `exponent` - Powers, square roots
+- `multiplication` - Multiplication
+- `division` - Division
+- `addition` - Addition
+- `subtraction` - Subtraction
+
+---
+
+### 2.12 Table | الجداول
+
+**Endpoint:** `POST /api/grading/table`
+
+Grade table completion questions with item-by-point scoring.
+تصحيح أسئلة إكمال الجداول مع توزيع الدرجات لكل عنصر.
+
+**Request (All Fields):**
+```json
+{
+  "questions": [
+    {
+      "question_number": "1",
+      "question_text": "Fill in the table about cell organelles and their functions",
+      "grading_table": [
+        {"item": "Mitochondria produces energy (ATP)", "points": 2.5},
+        {"item": "Nucleus contains DNA/genetic material", "points": 2.5},
+        {"item": "Ribosomes synthesize proteins", "points": 2.5},
+        {"item": "Cell membrane controls entry/exit", "points": 2.5}
+      ],
+      "points": 10.0
+    }
+  ],
+  "student_answers": {"1": "Mitochondria makes ATP. Nucleus has DNA. Ribosomes make proteins."}
+}
+```
+
+---
+
+## 3. Annotation Endpoint | نقطة نهاية التعليقات
+
+Generate annotation metadata for teacher review.
+توليد بيانات التوصيف لمراجعة المعلم.
+
+**Endpoint:** `POST /api/annotation/generate`
+
+**Request (All Fields):**
+```json
+{
+  "exam_file": "BASE64_ENCODED_IMAGE",
+  "file_type": "png",
+  "grading_results": {
+    "questions": [
+      {
+        "question_number": "1",
+        "question_type": "multiple_choice",
+        "points_earned": 2,
+        "points_possible": 2,
+        "correct_answer": "B",
+        "feedback": ""
+      },
+      {
+        "question_number": "2",
+        "question_type": "multiple_choice",
+        "points_earned": 0,
+        "points_possible": 2,
+        "correct_answer": "C",
+        "feedback": "Jupiter is the largest planet in our solar system"
+      },
+      {
+        "question_number": "3",
+        "question_type": "open_ended",
+        "points_earned": 7,
+        "points_possible": 10,
+        "correct_answer": "",
+        "feedback": "Good analysis but missing details about economic consequences",
+        "annotation_feedback": "تحليل جيد لكن ينقصك تفاصيل عن العواقب الاقتصادية"
+      }
+    ],
+    "total_earned": 9,
+    "total_possible": 14
+  }
+}
+```
+
+**Fields Explained | شرح الحقول:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `exam_file` | string | ✅ | Base64 encoded image/PDF |
+| `file_type` | string | ✅ | "png", "jpg", or "pdf" |
+| `grading_results.questions` | array | ✅ | Array of question results |
+| `questions[].question_number` | string | ✅ | Question identifier |
+| `questions[].question_type` | string | ❌ | "multiple_choice", "true_false", "open_ended", etc. |
+| `questions[].points_earned` | number | ✅ | Points student earned |
+| `questions[].points_possible` | number | ✅ | Max possible points |
+| `questions[].correct_answer` | any | ❌ | Correct answer (shown when wrong) |
+| `questions[].feedback` | string | ❌ | Teacher/AI feedback for this question |
+| `questions[].annotation_feedback` | string | ❌ | Alternative feedback text in different language |
+| `grading_results.total_earned` | number | ✅ | Total points earned |
+| `grading_results.total_possible` | number | ✅ | Total possible points |
+
+**Response (All Fields):**
+```json
+{
+  "success": true,
+  "data": {
+    "annotation_metadata": [
+      {
+        "id": "q1_mark",
+        "type": "check",
+        "text": "✓ 2/2",
+        "x": 150,
+        "y": 200,
+        "width": 100,
+        "height": 40,
+        "color": "#19aa19",
+        "question_number": 1,
+        "status": "pending"
+      },
+      {
+        "id": "q2_mark",
+        "type": "x",
+        "text": "✗ 0/2",
+        "x": 150,
+        "y": 300,
+        "width": 100,
+        "height": 40,
+        "color": "#be1e1e",
+        "question_number": 2,
+        "status": "pending"
+      },
+      {
+        "id": "q2_correct",
+        "type": "correct_answer",
+        "text": "Correct: C",
+        "x": 160,
+        "y": 340,
+        "width": 120,
+        "height": 30,
+        "color": "#143c8c",
+        "question_number": 2,
+        "status": "pending"
+      },
+      {
+        "id": "q3_mark",
+        "type": "partial",
+        "text": "— 7/10",
+        "x": 150,
+        "y": 450,
+        "width": 100,
+        "height": 40,
+        "color": "#c89600",
+        "question_number": 3,
+        "status": "pending"
+      },
+      {
+        "id": "q3_feedback",
+        "type": "feedback",
+        "text": "Good analysis but missing details...",
+        "x": 160,
+        "y": 500,
+        "width": 300,
+        "height": 60,
+        "color": "#143c8c",
+        "question_number": 3,
+        "status": "pending"
+      }
+    ],
+    "corrected_image": "BASE64_ENCODED_IMAGE",
+    "original_image": "BASE64_CLEAN_IMAGE",
+    "filename": "exam_corrected.png",
+    "pages_processed": 1,
+    "annotations_added": 5,
+    "is_draft": true
+  }
+}
+```
+
+---
+
+## 4. Report Endpoint | نقطة نهاية التقارير
+
+Generate professional exam reports in DOCX or PDF.
+توليد تقارير امتحانات احترافية بصيغة DOCX أو PDF.
+
+**Endpoint:** `POST /api/exam/report`
+
+**Request (All Fields Including Sub-Questions):**
+```json
+{
+  "student_info": {
+    "name": "Ahmed Hassan / أحمد حسن",
+    "section": "Grade 10-A",
+    "date": "2026-01-17",
+    "subject": "Multilingual Science Test"
+  },
+  "grading_results": {
+    "grading": [
+      {
+        "question_number": "1",
+        "student_answer": "B",
+        "correct_answer": "B",
+        "status": "Correct",
+        "earned_points": 2,
+        "possible_points": 2,
+        "feedback": ""
+      },
+      {
+        "question_number": "2",
+        "student_answer": "A",
+        "correct_answer": "C",
+        "status": "Incorrect",
+        "earned_points": 0,
+        "possible_points": 2,
+        "feedback": "Carbon is element #6"
+      },
+      {
+        "question_number": "3",
+        "student_answer": "القاهرة",
+        "correct_answer": "القاهرة",
+        "status": "Correct",
+        "earned_points": 2,
+        "possible_points": 2,
+        "feedback": ""
+      },
+      {
+        "question_number": "4",
+        "student_answer": "صح",
+        "correct_answer": "خطأ",
+        "status": "Incorrect",
+        "earned_points": 0,
+        "possible_points": 2,
+        "feedback": "القمر يدور حول الأرض وليس العكس"
+      },
+      {
+        "question_number": "5",
+        "student_answer": "Paris",
+        "correct_answer": "Paris",
+        "status": "Correct",
+        "earned_points": 2,
+        "possible_points": 2,
+        "feedback": ""
+      },
+      {
+        "question_number": "6",
+        "sub_questions": [
+          {
+            "sub_number": "a",
+            "student_answer": "H2O",
+            "correct_answer": "H2O",
+            "status": "Correct",
+            "earned_points": 1,
+            "possible_points": 1,
+            "feedback": ""
+          },
+          {
+            "sub_number": "b",
+            "student_answer": "NaCl",
+            "correct_answer": "NaCl",
+            "status": "Correct",
+            "earned_points": 1,
+            "possible_points": 1,
+            "feedback": ""
+          },
+          {
+            "sub_number": "c",
+            "student_answer": "CO2",
+            "correct_answer": "CO3",
+            "status": "Incorrect",
+            "earned_points": 0,
+            "possible_points": 1,
+            "feedback": "Carbonate is CO3, not CO2"
+          }
+        ]
+      },
+      {
+        "question_number": "7",
+        "student_answer": "La Révolution a changé la société",
+        "correct_answer": "",
+        "status": "Partial",
+        "earned_points": 3,
+        "possible_points": 5,
+        "feedback": "Bonne analyse mais il manque des détails sur les conséquences économiques"
+      }
+    ],
+    "total_earned": 11,
+    "total_possible": 18
+  },
+  "questions": [
+    {"question_number": "1", "question_text": "What is the chemical symbol for water?"},
+    {"question_number": "2", "question_text": "Which element has atomic number 6?"},
+    {"question_number": "3", "question_text": "ما هي عاصمة مصر؟"},
+    {"question_number": "4", "question_text": "الشمس تدور حول الأرض. (صح / خطأ)"},
+    {"question_number": "5", "question_text": "Quelle est la capitale de la France?"},
+    {"question_number": "6", "question_text": "Write the chemical formulas for: (a) Water (b) Salt (c) Carbonate"},
+    {"question_number": "7", "question_text": "Expliquez le rôle de la Révolution française"}
+  ],
+  "format": "docx",
+  "language": "en"
+}
+```
+
+**Fields Explained | شرح الحقول:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `student_info.name` | string | ✅ | Student name |
+| `student_info.section` | string | ❌ | Class/section |
+| `student_info.date` | string | ❌ | Exam date |
+| `student_info.subject` | string | ❌ | Subject name |
+| `grading_results.grading` | array | ✅ | Array of graded questions |
+| `grading[].question_number` | string | ✅ | Question identifier |
+| `grading[].student_answer` | string | ✅ | What student answered |
+| `grading[].correct_answer` | string | ❌ | The correct answer |
+| `grading[].status` | string | ❌ | "Correct", "Incorrect", "Partial" |
+| `grading[].earned_points` | number | ✅ | Points earned |
+| `grading[].possible_points` | number | ✅ | Max points |
+| `grading[].feedback` | string | ❌ | Teacher feedback |
+| `grading[].sub_questions` | array | ❌ | Sub-questions (6a, 6b, 6c) |
+| `sub_questions[].sub_number` | string | ✅ | "a", "b", "c", etc. |
+| `sub_questions[].student_answer` | string | ✅ | Student's sub-answer |
+| `sub_questions[].correct_answer` | string | ❌ | Correct sub-answer |
+| `sub_questions[].earned_points` | number | ✅ | Points for this sub |
+| `sub_questions[].possible_points` | number | ✅ | Max points for sub |
+| `sub_questions[].feedback` | string | ❌ | Feedback for sub |
+| `grading_results.total_earned` | number | ✅ | Final score numerator |
+| `grading_results.total_possible` | number | ✅ | Final score denominator |
+| `questions` | array | ❌ | Original question texts |
+| `format` | string | ✅ | "docx" or "pdf" |
+| `language` | string | ✅ | "en", "ar", or "fr" |
+
+**Response:** Downloads the file directly (DOCX or PDF).
+**الاستجابة:** تحميل الملف مباشرة (DOCX أو PDF).
+
+---
+
+## 5. Review Studio | استوديو المراجعة
+
+**This is the main teacher review interface.**
+**هذه هي الواجهة الرئيسية لمراجعة المعلم.**
+
+### Web Access | الوصول عبر الويب
+
+```
+GET /review
+```
+
+Opens a full-screen interactive studio where teachers can:
+يفتح استوديو تفاعلي بملء الشاشة حيث يمكن للمعلمين:
+- Upload the original exam scan
+رفع المسح الضوئي الأصلي للامتحان -
+- Paste grading JSON data
+لصق بيانات التصحيح بصيغة JSON -
+- Drag/resize/customize annotations (colors, fonts, positions)
+سحب/تغيير حجم/تخصيص التعليقات (الألوان، الخطوط، المواقع) -
+- Toggle transparency for annotations
+التحكم في شفافية التعليقات -
+- Add Final Score labels
+إضافة ملصقات الدرجة النهائية -
+- Download the final annotated image
+تحميل الصورة النهائية المصححة -
+
+### Finalize Review API | واجهة إنهاء المراجعة
+
+**Endpoint:** `POST /review/finalize`
+
+Used internally by the studio to render annotations onto the image.
+
+**Request (All Fields):**
+```json
+{
+  "image": "BASE64_ENCODED_IMAGE",
+  "annotations": [
+    {
+      "id": "q1_mark",
+      "type": "check",
+      "text": "✓ 5/5",
+      "x": 100,
+      "y": 200,
+      "width": 140,
+      "height": 48,
+      "color": "#19aa19",
+      "opacity": 1.0,
+      "question_number": 1,
+      "status": "approved"
+    },
+    {
+      "id": "q2_mark",
+      "type": "x",
+      "text": "✗ 0/5",
+      "x": 100,
+      "y": 300,
+      "width": 140,
+      "height": 48,
+      "color": "#be1e1e",
+      "opacity": 1.0,
+      "question_number": 2,
+      "status": "pending"
+    },
+    {
+      "id": "q2_correct",
+      "type": "correct_answer",
+      "text": "Correct: C",
+      "x": 110,
+      "y": 350,
+      "width": 150,
+      "height": 30,
+      "color": "#143c8c",
+      "opacity": 1.0,
+      "question_number": 2,
+      "status": "pending"
+    },
+    {
+      "id": "q3_mark",
+      "type": "partial",
+      "text": "— 3/5",
+      "x": 100,
+      "y": 450,
+      "width": 140,
+      "height": 48,
+      "color": "#c89600",
+      "opacity": 1.0,
+      "question_number": 3,
+      "status": "pending"
+    },
+    {
+      "id": "q3_feedback",
+      "type": "feedback",
+      "text": "Good explanation but missing key terms",
+      "x": 110,
+      "y": 500,
+      "width": 300,
+      "height": 60,
+      "color": "#143c8c",
+      "opacity": 0.9,
+      "question_number": 3,
+      "status": "pending"
+    },
+    {
+      "id": "label1",
+      "type": "label",
+      "text": "Great work on this section!",
+      "x": 150,
+      "y": 600,
+      "width": 200,
+      "height": 40,
+      "color": "#0ea5e9",
+      "opacity": 1.0,
+      "question_number": null,
+      "status": "approved"
+    },
+    {
+      "id": "final",
+      "type": "final_score",
+      "text": "TOTAL: 85/100",
+      "x": 50,
+      "y": 50,
+      "width": 240,
+      "height": 80,
+      "color": "#4facfe",
+      "opacity": 1.0,
+      "question_number": null,
+      "status": "approved"
+    }
+  ]
+}
+```
+
+**Annotation Fields Explained | شرح حقول التوصيف:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | ✅ | Unique identifier (e.g., "q1_mark", "final") |
+| `type` | string | ✅ | "check", "x", "partial", "label", "correct_answer", "feedback", "final_score" |
+| `text` | string | ✅ | Display text (e.g., "✓ 5/5", "Correct: B") |
+| `x` | number | ✅ | X position in pixels |
+| `y` | number | ✅ | Y position in pixels |
+| `width` | number | ❌ | Width in pixels (default: 120) |
+| `height` | number | ❌ | Height in pixels (default: 40) |
+| `color` | string | ❌ | Hex color (default: "#4facfe") |
+| `opacity` | number | ❌ | 0.0 to 1.0 for transparency (default: 1.0) |
+| `question_number` | number/null | ❌ | Question this relates to (null for labels) |
+| `status` | string | ❌ | "pending" or "approved" |
+
+**Response:** Downloads the rendered PNG image.
+
+### Mobile Integration | التكامل مع الموبايل
+
+For mobile apps, you can:
+في تطبيقات الجوال، يمكنك:
+1. Call `/api/annotation/generate` to get annotation metadata
+للحصول على بيانات التوصيف `/api/annotation/generate` استدعاء -
+2. Display a native preview using the coordinates
+عرض معاينة أصلية باستخدام الإحداثيات -
+3. Allow teachers to adjust positions and customize everything (colors/fonts) like the /review route gui
+تبديل المواقع وتخصيص كل شيء (الألوان/الخطوط) تمامًا مثل واجهة مراجعة الويب -
+4. Call `/review/finalize` with the modified metadata
+مع البيانات المعدلة `/review/finalize` استدعاء -
+5. Download and display the final image
+تحميل وعرض الصورة النهائية -
+
+---
+
+## 6. Test Console | وحدة التحكم للاختبار
+
+**For development and testing only.**
+**للتطوير والاختبار فقط.**
+
+```
+GET /test
+```
+
+Provides a web interface to test all endpoints with sample data. Features:
+يوفر واجهة ويب لاختبار كافة نقاط النهاية مع بيانات تجريبية. الميزات:
+- Pre-filled sample data for all question types
+بيانات تجريبية جاهزة لكافة أنواع الأسئلة -
+- Image upload for OCR testing
+رفع الصور لاختبار OCR -
+- Real-time response display
+عرض الاستجابة في الوقت الفعلي -
+- Report generation in multiple languages (English, Arabic, French)
+توليد التقارير بلغات متعددة (الإنجليزية، العربية، الفرنسية) -
+- Annotation customization testing
+اختبار تخصيص التعليقات -
+
+---
+
+## Error Handling | معالجة الأخطاء
+
+All endpoints return errors in this format:
+تعيد كافة نقاط النهاية الأخطاء بهذا التنسيق:
+
+```json
+{
+  "success": false,
+  "error": "Error message describing the issue"
+}
+```
+
+**Common HTTP Status Codes | أكواد الحالة الشائعة:**
+- `200` - Success (نجاح)
+- `400` - Bad Request (missing or invalid data) (طلب غير صالح - بيانات مفقودة أو غير صحيحة)
+- `500` - Server Error (خطأ في الخادم)
+
+---
+
+## Integration Summary | ملخص التكامل
+
+### Typical Grading Flow | تدفق التصحيح النموذجي
+
+```mermaid
+graph TD
+    A[Upload Exam Image<br>رفع صورة الامتحان] --> B[OCR Extraction<br>استخراج النص OCR]
+    B --> C[Get Questions & Student Answers<br>الحصول على الأسئلة وإجابات الطلاب]
+    C --> D[Grade Each Question Type<br>تصحيح كل نوع سؤال]
+    D --> E[Generate Annotation Metadata<br>توليد بيانات التوصيف]
+    E --> F[Teacher Review in Studio<br>مراجعة المعلم في الاستوديو]
+    F --> G[Finalize & Download<br>إنهاء وتحميل]
+    G --> H[Generate Report<br>توليد التقرير]
+```
+
+### API Endpoints Quick Reference | مرجع سريع
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/annotation/generate` | POST | Generate teacher-annotated image |
+| `/api/ocr/english` | POST | English OCR |
+| `/api/ocr/arabic` | POST | Arabic OCR |
+| `/api/ocr/french` | POST | French OCR |
+| `/api/grading/mcq` | POST | Grade MCQ |
+| `/api/grading/true-false` | POST | Grade T/F |
+| `/api/grading/matching` | POST | Grade Matching |
+| `/api/grading/fill-in-blank` | POST | Grade Fill-in-Blank |
+| `/api/grading/ordering` | POST | Grade Ordering |
+| `/api/grading/labeling` | POST | Grade Labeling (text) |
+| `/api/grading/short-answer` | POST | Grade Short Answer (NEW) |
+| `/api/grading/open-ended` | POST | AI Grade Essays |
+| `/api/grading/compare-contrast` | POST | Grade Comparisons |
+| `/api/grading/definition` | POST | Grade Definitions |
+| `/api/grading/math-equations` | POST | Grade Math (PEMDAS) |
+| `/api/grading/table` | POST | Grade Tables |
+| `/api/annotation/generate` | POST | Generate Annotations |
+| `/api/exam/report` | POST | Generate Report (DOCX/PDF) |
+| `/review` | GET | Review Studio UI |
+| `/review/finalize` | POST | Render Final Image |
+| `/test` | GET | Test Console |
 
 ---
 
-## Technical Stack
+## 7. Frontend Integration Guide | دليل دمج الواجهة الأمامية
 
-| Component | Technology |
-|-----------|------------|
-| Framework | Flask + Flask-RESTx |
-| OCR & Grading AI | Google Gemini 2.0 Flash |
-| Annotation AI | OpenAI DALL-E 2 |
-| PDF Processing | PyMuPDF (fitz) |
-| Image Processing | Pillow |
-| Validation | Pydantic |
-| Documentation | Swagger/OpenAPI |
+### Quick Start | البداية السريعة
 
----
-
-## Key Design Decisions
-
-1. **Multi-Pass Grading**: 3 AI passes with mode/median for consistency
-2. **Code-Based Scoring**: AI assesses quality, code calculates points
-3. **Feedback per Item**: Each criterion/step includes AI reasoning
-4. **High Variance Flagging**: Flags inconsistent grades for human review
-5. **Template-Free Annotation**: AI Vision detects positions dynamically
-6. **Dual Format Output**: Plain text + LaTeX for math expressions
-
----
-
-## Files Structure
-
+**Base URL Configuration:**
+```javascript
+// config.js
+const API_BASE = 'http://your-server:5000';  // Update with your production URL
 ```
-app/
-├── __init__.py              # Flask app factory
-├── config.py                # Configuration
-├── models/
-│   └── schemas.py           # Pydantic models (12 types)
-├── routes/
-│   ├── ocr.py               # /api/ocr endpoints
-│   ├── grading.py           # /api/grading endpoints (12)
-│   └── annotation.py        # /api/annotation endpoint
-└── services/
-    ├── gemini_ocr.py        # OCR with 3 language prompts
-    ├── grading.py           # Code-based grading
-    ├── short_answer_grading.py  # NEW: Short answer grading
-    ├── labeling_grading.py  # Diagram labeling with LLM
-    ├── open_ended_grading.py
-    ├── compare_contrast_grading.py
-    ├── definition_grading.py
-    ├── math_grading.py
-    ├── table_grading.py
-    ├── labeling_image_grading.py
-    └── annotation_service.py
+
+**Headers for JSON Requests:**
+```javascript
+const headers = {
+  'Content-Type': 'application/json'
+};
+```
+
+**Headers for File Upload (OCR) | ترويسات رفع الملفات:**
+```javascript
+// Do NOT set Content-Type for FormData - browser handles it automatically
+// لا تضع Content-Type عند استخدام FormData - المتصفح يتعامل مع ذلك تلقائيًا
+const formData = new FormData();
+formData.append('file', imageFile);
 ```
 
 ---
 
-## Summary
+### Complete End-to-End Flow | التدفق الكامل من البداية للنهاية
 
-Gradeo API provides end-to-end automated exam processing:
+This example shows the complete exam grading workflow:
+يوضح هذا المثال سير العمل الكامل لتصحيح الامتحان:
 
-1. **OCR**: Extract questions from any exam format (3 languages, 13 types)
-2. **Grade**: AI + code hybrid grading with 3-pass consistency and feedback
-3. **Annotate**: Teacher-style correction marks using OpenAI image generation
+```javascript
+// ============================================
+// STEP 1: Upload exam image for OCR
+// ============================================
+async function extractQuestions(examImageFile, language = 'english') {
+  const formData = new FormData();
+  formData.append('file', examImageFile);
+  
+  const response = await fetch(`${API_BASE}/api/ocr/${language}`, {
+    method: 'POST',
+    body: formData
+  });
+  
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error);
+  
+  return result.data.structured_data.questions;
+}
 
-All components are production-ready with Swagger documentation.
+// ============================================
+// STEP 2: Grade answers by question type
+// ============================================
+async function gradeQuestions(questions, studentAnswers) {
+  const allResults = [];
+  
+  // Group questions by type
+  const byType = questions.reduce((acc, q) => {
+    const type = q.question_type || 'multiple_choice';
+    if (!acc[type]) acc[type] = { questions: [], answers: {} };
+    acc[type].questions.push(q);
+    acc[type].answers[q.question_number] = studentAnswers[q.question_number];
+    return acc;
+  }, {});
+  
+  // Grade each type with appropriate endpoint
+  const endpoints = {
+    'multiple_choice': '/api/grading/mcq',
+    'true_false': '/api/grading/true-false',
+    'matching': '/api/grading/matching',
+    'fill_in_blank': '/api/grading/fill-in-blank',
+    'ordering': '/api/grading/ordering',
+    'labeling': '/api/grading/labeling',
+    'open_ended': '/api/grading/open-ended',
+    'compare_contrast': '/api/grading/compare-contrast',
+    'definition': '/api/grading/definition',
+    'math_equation': '/api/grading/math-equations',
+    'table': '/api/grading/table'
+  };
+  
+  for (const [type, data] of Object.entries(byType)) {
+    const endpoint = endpoints[type] || '/api/grading/mcq';
+    
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        questions: data.questions,
+        student_answers: data.answers
+      })
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+      allResults.push(...result.data.details);
+    }
+  }
+  
+  return allResults;
+}
+
+// ============================================
+// STEP 3: Generate annotation metadata
+// ============================================
+async function generateAnnotations(examImageBase64, gradingResults) {
+  const response = await fetch(`${API_BASE}/api/annotation/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      exam_file: examImageBase64,
+      file_type: 'png',
+      grading_results: {
+        questions: gradingResults.map(r => ({
+          question_number: r.question_number,
+          question_type: r.question_type || 'multiple_choice',
+          points_earned: r.points_earned,
+          points_possible: r.points_possible,
+          correct_answer: r.correct_answer || '',
+          feedback: r.feedback || ''
+        })),
+        total_earned: gradingResults.reduce((sum, r) => sum + r.points_earned, 0),
+        total_possible: gradingResults.reduce((sum, r) => sum + r.points_possible, 0)
+      }
+    })
+  });
+  
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error);
+  
+  return result.data.annotation_metadata;
+}
+
+// ============================================
+// STEP 4: Finalize with teacher-adjusted annotations
+// ============================================
+async function finalizeReview(examImageBase64, annotations) {
+  const response = await fetch(`${API_BASE}/api/review/finalize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image: examImageBase64,
+      settings: { annotations }
+    })
+  });
+  
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error);
+  }
+  
+  // Returns PNG blob for download
+  return await response.blob();
+}
+
+// ============================================
+// STEP 5: Generate report document
+// ============================================
+async function generateReport(studentInfo, gradingResults, questions, format = 'docx', language = 'en') {
+  const response = await fetch(`${API_BASE}/api/exam/report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_info: studentInfo,
+      grading_results: {
+        grading: gradingResults.map(r => ({
+          question_number: r.question_number,
+          student_answer: r.student_answer || '',
+          correct_answer: r.correct_answer || '',
+          status: r.is_correct ? 'Correct' : (r.points_earned > 0 ? 'Partial' : 'Incorrect'),
+          earned_points: r.points_earned,
+          possible_points: r.points_possible,
+          feedback: r.feedback || ''
+        })),
+        total_earned: gradingResults.reduce((sum, r) => sum + r.points_earned, 0),
+        total_possible: gradingResults.reduce((sum, r) => sum + r.points_possible, 0)
+      },
+      questions,
+      format,
+      language
+    })
+  });
+  
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error);
+  }
+  
+  // Returns DOCX/PDF blob for download
+  return await response.blob();
+}
+
+// ============================================
+// COMPLETE USAGE EXAMPLE
+// ============================================
+async function completeGradingWorkflow(examImage, studentAnswers, studentInfo) {
+  try {
+    // 1. Extract questions via OCR
+    const questions = await extractQuestions(examImage, 'english');
+    console.log('Extracted questions:', questions);
+    
+    // 2. Grade all answers
+    const gradingResults = await gradeQuestions(questions, studentAnswers);
+    console.log('Grading results:', gradingResults);
+    
+    // 3. Generate annotations
+    const imageBase64 = await fileToBase64(examImage);
+    const annotations = await generateAnnotations(imageBase64, gradingResults);
+    console.log('Generated annotations:', annotations);
+    
+    // 4. (Optional) Let teacher adjust annotations in UI, then finalize
+    const finalImage = await finalizeReview(imageBase64, annotations);
+    downloadBlob(finalImage, 'graded_exam.png');
+    
+    // 5. Generate report
+    const report = await generateReport(studentInfo, gradingResults, questions, 'docx', 'en');
+    downloadBlob(report, 'exam_report.docx');
+    
+    return { success: true, gradingResults };
+  } catch (error) {
+    console.error('Grading workflow failed:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Helper: Convert File to Base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Helper: Download blob as file
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+```
+
+---
+
+### React Native / Mobile Integration | التكامل مع React Native
+
+```javascript
+// For React Native, use fetch with FormData for file uploads
+import * as FileSystem from 'expo-file-system';
+
+// Convert local URI to base64
+async function imageToBase64(uri) {
+  return await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64
+  });
+}
+
+// OCR with image picker result
+async function ocrFromCamera(imageUri, language = 'english') {
+  const formData = new FormData();
+  formData.append('file', {
+    uri: imageUri,
+    type: 'image/jpeg',
+    name: 'exam.jpg'
+  });
+  
+  const response = await fetch(`${API_BASE}/api/ocr/${language}`, {
+    method: 'POST',
+    body: formData
+  });
+  
+  return await response.json();
+}
+```
+
+---
+
+### Error Handling Best Practices | أفضل ممارسات معالجة الأخطاء
+
+```javascript
+async function apiCall(endpoint, options) {
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    const data = await response.json();
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    
+    return data;
+  } catch (error) {
+    // Handle specific error types
+    if (error.message.includes('GEMINI_API_KEY')) {
+      console.error('Server configuration error - API key missing');
+    } else if (error.message.includes('network')) {
+      console.error('Network error - check connection');
+    }
+    throw error;
+  }
+}
+```
+
+---
+
+### Question Type Reference | مرجع أنواع الأسئلة
+
+| Type | Endpoint | Use Case | الوصف |
+|------|----------|----------|-------|
+| `multiple_choice` | `/api/grading/mcq` | A, B, C, D options | خيارات متعددة |
+| `true_false` | `/api/grading/true-false` | True/False statements | صح/خطأ |
+| `matching` | `/api/grading/matching` | Connect left to right columns | توصيل الأعمدة |
+| `fill_in_blank` | `/api/grading/fill-in-blank` | Fill in missing words | أكمل الفراغ |
+| `ordering` | `/api/grading/ordering` | Arrange in correct order | ترتيب العناصر |
+| `labeling` | `/api/grading/labeling` | Label diagram parts | تسمية الأجزاء |
+| `open_ended` | `/api/grading/open-ended` | Essay/AI-graded | أسئلة مقالية |
+| `compare_contrast` | `/api/grading/compare-contrast` | Compare two concepts | مقارنة وتباين |
+| `definition` | `/api/grading/definition` | Define a term | تعريف مصطلح |
+| `math_equation` | `/api/grading/math-equations` | PEMDAS step-by-step | معادلات رياضية |
+| `table` | `/api/grading/table` | Fill table cells | إكمال جداول |
+
+---
+
+**Last Updated:** January 2026

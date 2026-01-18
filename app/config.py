@@ -7,7 +7,7 @@ class Config:
     GEMINI_API_KEY = ""
     GEMINI_MODEL = 'gemini-2.0-flash'
     
-    # OpenAI API for image generation
+    # OpenAI API for image generation (not needed anymore)
     OPENAI_API_KEY = ""
     
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB

@@ -677,10 +677,9 @@ math_success_model = grading_ns.model('MathSuccess', {
     'data': fields.Nested(math_grading_result)
 })
 
-
 # ============ Endpoints ============
 
-@grading_ns.route('/multiple-choice')
+@grading_ns.route('/mcq')
 class GradeMultipleChoice(Resource):
     @grading_ns.doc('grade_multiple_choice')
     @grading_ns.expect(mcq_request_model)
@@ -698,11 +697,8 @@ class GradeMultipleChoice(Resource):
             points = data.get('points_per_question', 1.0)
             
             grading = GradingService()
-            if questions and isinstance(questions[0].get('question_number'), str):
-                result = grading.grade_ordered_questions(questions, student_answers, points)
-            else:
-                answers = {int(k): v for k, v in student_answers.items()}
-                result = grading.grade_multiple_choice(questions, answers, points)
+            # Always use grade_multiple_choice for this endpoint
+            result = grading.grade_multiple_choice(questions, student_answers, points)
             
             return {'success': True, 'data': result}, 200
         except Exception as e:
@@ -727,11 +723,8 @@ class GradeTrueFalse(Resource):
             points = data.get('points_per_question', 1.0)
             
             grading = GradingService()
-            if questions and isinstance(questions[0].get('question_number'), str):
-                result = grading.grade_ordered_questions(questions, student_answers, points)
-            else:
-                answers = {int(k): v for k, v in student_answers.items()}
-                result = grading.grade_true_false(questions, answers, points)
+            # Always use grade_true_false for this endpoint
+            result = grading.grade_true_false(questions, student_answers, points)
             
             return {'success': True, 'data': result}, 200
         except Exception as e:
@@ -835,32 +828,32 @@ class GradeLabeling(Resource):
             return {'success': False, 'error': str(e)}, 500
 
 
-@grading_ns.route('/labeling-image')
-class GradeLabelingImage(Resource):
-    @grading_ns.doc('grade_labeling_image')
-    @grading_ns.expect(labeling_image_request_model)
-    @grading_ns.response(200, 'Success', labeling_image_success_model)
-    @grading_ns.response(400, 'Bad Request', error_model)
-    def post(self):
-        # Grade labeling questions using Gemini Vision to OCR handwritten labels
-        try:
-            data = request.get_json()
-            if not data:
-                return {'success': False, 'error': 'No JSON data'}, 400
+#@grading_ns.route('/labeling-image')
+#class GradeLabelingImage(Resource):
+  #@grading_ns.doc('grade_labeling_image', visible=False)
+  #@grading_ns.expect(labeling_image_request_model)
+  #@grading_ns.response(200, 'Success', labeling_image_success_model)
+  #@grading_ns.response(400, 'Bad Request', error_model)
+  #def post(self):
+        #Grade labeling questions using Gemini Vision to OCR handwritten labels
+        #try:
+         #data = request.get_json()
+            #if not data:
+             #return {'success': False, 'error': 'No JSON data'}, 400
             
-            questions = data.get('questions', [])
-            student_images = data.get('student_images', {})
+           # questions = data.get('questions', [])
+            #student_images = data.get('student_images', {})
             
-            if not questions:
-                return {'success': False, 'error': 'No questions provided'}, 400
+            #if not questions:
+              #  return {'success': False, 'error': 'No questions provided'}, 400
             
-            from app.services.labeling_image_grading import LabelingImageGradingService
-            grading_service = LabelingImageGradingService()
-            result = grading_service.grade_questions(questions, student_images)
+            #from app.services.labeling_image_grading import LabelingImageGradingService
+            #grading_service = LabelingImageGradingService()
+            #result = grading_service.grade_questions(questions, student_images)
             
-            return {'success': True, 'data': result}, 200
-        except Exception as e:
-            return {'success': False, 'error': str(e)}, 500
+            #return {'success': True, 'data': result}, 200
+        #except Exception as e:
+            #return {'success': False, 'error': str(e)}, 500
 
 
 @grading_ns.route('/compare-contrast')
@@ -1007,6 +1000,10 @@ class GradeShortAnswer(Resource):
             
             questions = data.get('questions', [])
             student_answers = data.get('student_answers', {})
+            
+            # Ensure student_answers is a dict
+            if not isinstance(student_answers, dict):
+                return {'success': False, 'error': 'student_answers must be a dict mapping question_number to answer text, e.g. {"1": "Movement, Growth"}'}, 400
             
             if not questions:
                 return {'success': False, 'error': 'No questions provided'}, 400

@@ -1529,24 +1529,4 @@ async function apiCall(endpoint, options) {
 }
 ```
 
----
-
-### Question Type Reference | مرجع أنواع الأسئلة
-
-| Type | Endpoint | Use Case | الوصف |
-|------|----------|----------|-------|
-| `multiple_choice` | `/api/grading/mcq` | A, B, C, D options | خيارات متعددة |
-| `true_false` | `/api/grading/true-false` | True/False statements | صح/خطأ |
-| `matching` | `/api/grading/matching` | Connect left to right columns | توصيل الأعمدة |
-| `fill_in_blank` | `/api/grading/fill-in-blank` | Fill in missing words | أكمل الفراغ |
-| `ordering` | `/api/grading/ordering` | Arrange in correct order | ترتيب العناصر |
-| `labeling` | `/api/grading/labeling` | Label diagram parts | تسمية الأجزاء |
-| `open_ended` | `/api/grading/open-ended` | Essay/AI-graded | أسئلة مقالية |
-| `compare_contrast` | `/api/grading/compare-contrast` | Compare two concepts | مقارنة وتباين |
-| `definition` | `/api/grading/definition` | Define a term | تعريف مصطلح |
-| `math_equation` | `/api/grading/math-equations` | PEMDAS step-by-step | معادلات رياضية |
-| `table` | `/api/grading/table` | Fill table cells | إكمال جداول |
-
----
-
 **Last Updated:** January 2026

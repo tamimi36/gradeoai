@@ -66,15 +66,27 @@ class WorkflowService:
                     grade_item['correct'] = True
             
             elif q_type == 'math_equation':
-                math_result = math_service.grade_math_equation(
-                    q.get('math_content', ''),
-                    str(student_answer),
-                    str(correct_answer),
-                    points
+                question_payload = {
+                    'question_number': q_num,
+                    'math_content': q.get('math_content', ''),
+                    'correct_answer': str(correct_answer),
+                    'points': points
+                }
+
+                math_result = math_service.grade_question(
+                    question_payload,
+                    str(student_answer)
                 )
+                
                 grade_item['points_earned'] = math_result.get('points_earned', 0)
-                grade_item['correct'] = math_result.get('is_correct', False)
-                grade_item['feedback'] = math_result.get('feedback')
+                grade_item['correct'] = math_result.get('points_earned', 0) >= math_result.get('points_possible', 1)
+                 
+                steps = math_result.get('step_results', [])
+                if steps:
+                    feedback_parts = [s.get('reason') for s in steps if s.get('status') != 'present' and s.get('reason')]
+                    grade_item['feedback'] = "; ".join(feedback_parts) if feedback_parts else "Steps correct"
+                else:
+                    grade_item['feedback'] = "No steps analysis available"
                 
             elif q_type == 'open_ended':
                 # For open-ended, we'd normally call AI grading (3-pass)
